@@ -1,0 +1,42 @@
+nodeInput: &nodeInput
+  plugin: nodeExporterInput
+  config:
+    timeout: 10s
+    pluginConfig:
+        metricFamilies: [ node_cpu_seconds_total, node_filesystem_avail_bytes, node_filesystem_size_bytes, node_filesystem_readonly, node_disk_reads_completed_total, node_disk_read_bytes_total, node_disk_read_time_seconds_total, node_disk_writes_completed_total, node_disk_written_bytes_total, node_disk_write_time_seconds_total, node_load1, node_load15, node_load5, node_memory_Buffers_bytes, node_memory_MemFree_bytes, node_memory_Cached_bytes, node_memory_MemTotal_bytes, node_network_receive_bytes_total, node_network_transmit_bytes_total, node_ntp_offset_seconds ]
+
+retagProcessor: &retagProcessor
+  plugin: retagProcessor
+  config:
+    timout: 10s
+    pluginConfig:
+      newTags:
+        app: HOST
+        svr_ip: ${monagent.host.ip}
+
+prometheusExporter: &prometheusExporter
+  plugin: prometheusExporter
+  config:
+    timout: 10s
+    pluginConfig:
+      formatType: fmtText
+
+modules:
+  - module: monitor.node.host
+    moduleType: monagent.pipeline
+    process: monagent
+    config:
+      name: monitor.node.host
+      status: ${monagent.pipeline.node.status}
+      pipelines:
+        - name: node_info
+          config:
+            scheduleStrategy: trigger
+            exposeUrl: /metrics/node/host
+          structure:
+            inputs:
+              - <<: *nodeInput
+            processors:
+              - <<: *retagProcessor
+            exporter:
+              <<: *prometheusExporter

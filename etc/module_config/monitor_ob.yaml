@@ -1,0 +1,245 @@
+obInputBasic: &obInputBasic
+  plugin: mysqlTableInput
+  config:
+    timeout: 10s
+    pluginConfig:
+      maintainCacheThreads: 4
+      connection:
+        url: ${monagent.ob.monitor.user}:${monagent.ob.monitor.password}@tcp(127.0.0.1:${monagent.ob.sql.port})/oceanbase?interpolateParams=true
+        maxIdle: 2
+        maxOpen: 32
+      defaultConditionValues:
+        ob_svr_ip: ${monagent.host.ip}
+        ob_svr_port: ${monagent.ob.rpc.port}
+        ob_is_rootservice: true
+      collectConfig:
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ tenant_name, cache_name, cache_size from __all_virtual_kvcache_info, __all_tenant where __all_tenant.tenant_id = __all_virtual_kvcache_info.tenant_id and svr_ip = ? and svr_port = ?
+          params: [ob_svr_ip, ob_svr_port]
+          name: ob_cache
+          tags:
+            tenant_name: tenant_name
+            cache_name: cache_name
+          metrics:
+            size_bytes: cache_size
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ tenant_name, tenant_id, stat_id, value from v$sysstat, __all_tenant where stat_id IN (10000, 10001, 10002, 10003, 10005, 10006, 140002, 140003, 140005, 140006, 60019, 60020, 60024, 80040, 80041, 130000, 130001, 130002, 130004, 20001, 20002, 30000, 30001, 30002, 30005, 30006, 40000, 40001, 40002, 40003, 40004, 40005, 40006, 40007, 40008, 40009, 40010, 40011, 40012, 50000, 50001, 50008, 50009, 60000, 60001, 60002, 60003, 60004, 60005, 60019, 60020, 60021, 60022, 60023, 60024, 80057) and (con_id > 1000 or con_id = 1) and __all_tenant.tenant_id = v$sysstat.con_id and class < 1000
+          name: ob_sysstat
+          tags:
+            tenant_name: tenant_name
+            tenant_id: tenant_id
+            stat_id: stat_id
+          metrics:
+            value: value
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) QUERY_TIMEOUT(100000000) */ tenant_name, 1 as role, case when cnt is null then 0 else cnt end as cnt from (select __all_tenant.tenant_name, t1.cnt from __all_tenant left join (select tenant_id, count(*) as cnt from __all_virtual_partition_info where svr_ip = ? and svr_port = ? group by tenant_id) t1 on __all_tenant.tenant_id = t1.tenant_id) t2
+          params: [ob_svr_ip, ob_svr_port]
+          name: ob_partition
+          tags:
+            tenant_name: tenant_name
+            role: role
+          metrics:
+            num: cnt
+          enableCache: true
+          cacheExpire: 1h
+          cacheDataExpire: 2h
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ group_concat(svr_ip SEPARATOR ',') as servers, status, count(1) as cnt from __all_server group by status
+          name: ob_server
+          tags:
+            server_ips: servers
+            status: status
+          metrics:
+            num: cnt
+          enableCache: true
+          cacheExpire: 60s
+          cacheDataExpire: 120s
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) QUERY_TIMEOUT(100000000)  */ tenant_name, count(*)  as cnt from gv$table group by tenant_id
+          name: ob_table
+          condition: ob_is_rootservice
+          tags:
+            tenant_name: tenant_name
+          metrics:
+            num: cnt
+          enableCache: true
+          cacheExpire: 1h
+          cacheDataExpire: 2h
+        - sql: select  /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ case when cnt is null then 0 else cnt end as cnt, tenant_name from (select __all_tenant.tenant_name, cnt from __all_tenant left join (select count(*) as cnt, tenant as tenant_name from __all_virtual_processlist where svr_ip = ? and svr_port = ? group by tenant) t1 on __all_tenant.tenant_name = t1.tenant_name) t2
+          params: [ob_svr_ip, ob_svr_port]
+          name: ob_active_session
+          tags:
+            tenant_name: tenant_name
+          metrics:
+            num: cnt
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ zone, name, value, time_to_usec(now()) as current from __all_zone
+          name: ob_zone
+          tags:
+            zone: zone
+            name: name
+          metrics:
+            stat: value
+            current_timestamp: current
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ tenant_name, mem_used, access_count, hit_count from v$plan_cache_stat join __all_tenant on v$plan_cache_stat.tenant_id = __all_tenant.tenant_id
+          name: ob_plan_cache
+          tags:
+            tenant_name: tenant_name
+          metrics:
+            memory_bytes: mem_used
+            access_total: access_count
+            hit_total: hit_count
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ tenant_name, sum(total_waits) as total_waits, sum(time_waited_micro) / 1000000 as time_waited from v$system_event join __all_tenant on v$system_event.con_id = __all_tenant.tenant_id where v$system_event.wait_class <> 'IDLE' group by tenant_name
+          name: ob_waitevent
+          tags:
+            tenant_name: tenant_name
+          metrics:
+            wait_total: total_waits
+            wait_seconds_total: time_waited
+
+obInputExtra: &obInputExtra
+  plugin: mysqlTableInput
+  config:
+    timeout: 10s
+    pluginConfig:
+      maintainCacheThreads: 4
+      connection:
+        url: ${monagent.ob.monitor.user}:${monagent.ob.monitor.password}@tcp(127.0.0.1:${monagent.ob.sql.port})/oceanbase?interpolateParams=true
+        maxIdle: 2
+        maxOpen: 32
+      defaultConditionValues:
+        ob_svr_ip: ${monagent.host.ip}
+        ob_svr_port: ${monagent.ob.rpc.port}
+        ob_is_rootservice: true
+      collectConfig:
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ count(*) as cnt from v$unit
+          name: ob_unit
+          metrics:
+            num: cnt
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ total_size, free_size from __all_virtual_disk_stat where svr_ip = ? and svr_port = ?
+          params: [ob_svr_ip, ob_svr_port]
+          name: ob_disk
+          metrics:
+            total_bytes: total_size
+            free_bytes: free_size
+          enableCache: true
+          cacheExpire: 1h
+          cacheDataExpire: 2h
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ cpu_total,cpu_assigned,mem_total,mem_assigned,disk_total,disk_assigned,unit_num,migrating_unit_num,cpu_assigned_percent, mem_assigned_percent, disk_assigned_percent from __all_virtual_server_stat where svr_ip = ? and svr_port = ?
+          params: [ob_svr_ip, ob_svr_port]
+          name: ob_server_resource
+          metrics:
+            cpu: cpu_total
+            cpu_assigned: cpu_assigned
+            memory_bytes: mem_total
+            memory_assigned_bytes: mem_assigned
+            disk_bytes: disk_total
+            disk_assigned_bytes: disk_assigned
+            unit_num: unit_num
+            migrating_unit_num: migrating_unit_num
+            cpu_assigned_percent: cpu_assigned_percent
+            memory_assigned_percent: mem_assigned_percent
+            disk_assigned_percent: disk_assigned_percent
+          enableCache: true
+          cacheExpire: 60s
+          cacheDataExpire: 120s
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ count(1) as cnt from __all_virtual_trans_stat where part_trans_action > 2 and ctx_create_time < date_sub(now(), interval 600 second) and svr_ip = ? and svr_port = ?
+          params: [ob_svr_ip, ob_svr_port]
+          name: ob_trans
+          condition: ob_is_rootservice
+          metrics:
+            expire_num: cnt
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) QUERY_TIMEOUT(100000000)  */ count(*) as cnt from gv$table where table_type in (5) and index_status in (5, 6)
+          name: ob_index
+          condition: ob_is_rootservice
+          metrics:
+            error_num: cnt
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ __all_tenant.tenant_name,  active, total, freeze_trigger, freeze_cnt from gv$memstore, __all_tenant  where gv$memstore.tenant_id = __all_tenant.tenant_id and ip = ? and port = ?
+          params: [ob_svr_ip, ob_svr_port]
+          name: ob_memstore
+          tags:
+            tenant_name: tenant_name
+          metrics:
+            active_bytes: active
+            total_bytes: total
+            freeze_trigger_bytes: freeze_trigger
+            freeze_times: freeze_cnt
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ sum(hold) as hold, sum(used) as used from __all_virtual_memory_info where tenant_id = 500 and svr_ip = ? and svr_port = ?
+          params: [ob_svr_ip, ob_svr_port]
+          name: ob_tenant500_memory
+          metrics:
+            hold_bytes: hold
+            used_bytes: used
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ tenant_name, __all_unit_config.name, max_cpu, min_cpu, max_memory, min_memory, max_iops, min_iops, max_disk_size, max_session_num from __all_tenant, __all_resource_pool, __all_unit_config, __all_unit  where __all_tenant.tenant_id = __all_resource_pool.tenant_id and __all_resource_pool.unit_config_id = __all_unit_config.unit_config_id and __all_unit.resource_pool_id = __all_resource_pool.resource_pool_id and __all_unit.svr_ip = ? and __all_unit.svr_port = ?
+          params: [ob_svr_ip, ob_svr_port]
+          name: ob_unit_config
+          tags:
+            tenant_name: tenant_name
+            unit_config_name: name
+          metrics:
+            max_cpu: max_cpu
+            min_cpu: min_cpu
+            max_memory_bytes: max_memory
+            min_memory_bytes: min_memory
+            max_iops: max_iops
+            min_iops: min_iops
+            max_disk_size_bytes: max_disk_size
+            max_session_num: max_session_num
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ tenant_name, tenant_id, name, gets, misses, sleeps, immediate_gets, immediate_misses, spin_gets, wait_time / 1000000 as wait_time from v$latch, __all_tenant where __all_tenant.tenant_id = v$latch.con_id
+          name: ob_latch
+          tags:
+            tenant_name: tenant_name
+            tenant_id: tenant_id
+            name: name
+          metrics:
+            get_total: gets
+            miss_total: misses
+            sleep_total: sleeps
+            immediate_get_total: immediate_gets
+            immediate_miss_total: immediate_misses
+            spin_get_total: spin_gets
+            wait_seconds_total: wait_time
+
+retagProcessor: &retagProcessor
+  plugin: retagProcessor
+  config:
+    timout: 10s
+    pluginConfig:
+      newTags:
+        app: OB
+        obzone: ${monagent.ob.zone.name}
+        svr_ip: ${monagent.host.ip}
+        ob_cluster_id: ${monagent.ob.cluster.id}
+        ob_cluster_name: ${monagent.ob.cluster.name}
+
+prometheusExporter: &prometheusExporter
+  plugin: prometheusExporter
+  config:
+    timout: 10s
+    pluginConfig:
+      formatType: fmtText
+
+modules:
+  - module: monitor.ob
+    moduleType: monagent.pipeline
+    process: monagent
+    config:
+      name: monitor.ob
+      status: ${monagent.pipeline.ob.status}
+      pipelines:
+        - name: ob_basic
+          config:
+            scheduleStrategy: trigger
+            exposeUrl: /metrics/ob/basic
+          structure:
+            inputs:
+              - <<: *obInputBasic
+            processors:
+              - <<: *retagProcessor
+            exporter:
+              <<: *prometheusExporter
+        - name: ob_extra
+          config:
+            scheduleStrategy: trigger
+            exposeUrl: /metrics/ob/extra
+          structure:
+            inputs:
+              - <<: *obInputExtra
+            processors:
+              - <<: *retagProcessor
+            exporter:
+              <<: *prometheusExporter

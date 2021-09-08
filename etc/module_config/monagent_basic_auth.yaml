@@ -1,0 +1,19 @@
+modules:
+    -
+      module: monagent.server.basic.auth
+      moduleType: monagent.server.basic.auth
+      process: monagent
+      disabled: {disable_http_basic_auth}
+      config:
+        auth: basic
+        username: ${http.server.basic.auth.username}
+        password: ${http.server.basic.auth.password}
+    -
+      module: monagent.admin.basic.auth
+      moduleType: monagent.admin.basic.auth
+      process: monagent
+      disabled: {disable_pprof_basic_auth}
+      config:
+        auth: basic
+        username: ${http.admin.basic.auth.username}
+        password: ${http.admin.basic.auth.password}

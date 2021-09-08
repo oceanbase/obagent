@@ -1,0 +1,16 @@
+configVersion: "2021-08-20T07:52:28.5443+08:00"
+configs:
+    - key: http.server.basic.auth.username
+      value: {http_basic_auth_user}
+      valueType: string
+    - key: http.server.basic.auth.password
+      value: {http_basic_auth_password}
+      valueType: string
+      encrypted: true
+    - key: http.admin.basic.auth.username
+      value: {pprof_basic_auth_user}
+      valueType: string
+    - key: http.admin.basic.auth.password
+      value: {pprof_basic_auth_password}
+      valueType: string
+      encrypted: true

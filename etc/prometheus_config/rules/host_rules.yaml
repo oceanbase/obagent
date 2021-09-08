@@ -1,0 +1,65 @@
+groups:
+  - name: node-alert
+    rules:
+    - alert: ob_host_disk_percent_over_threshold
+      expr: 100 * (1 - node_filesystem_avail_bytes / node_filesystem_size_bytes) > 97
+      for: 1m
+      labels:
+        serverity: page
+      annotations:
+        summary: "{{ $labels.instance }} {{ $labels.mountpoint }} used percent over threshold "
+        description: "{{ $labels.instance }} {{ $labels.mountpoint }} used percent > {{ $value }}"
+
+    - alert: ob_host_cpu_percent
+      expr: 100 * (1 - sum(rate(node_cpu_seconds_total{mode="idle"}[60s])) by (instance) / sum(rate(node_cpu_seconds_total[60s])) by (instance)) > 100
+      for: 1m
+      labels:
+        serverity: page
+      annotations:
+        summary: "{{ $labels.instance }} cpu used percent over threshold "
+        description: "{{ $labels.instance }} cpu_percent > {{ $value }}"
+
+    - alert: ob_host_net_recv_percent_over_threshold
+      expr: rate(node_network_receive_bytes_total[60s]) > 100000000
+      for: 1m
+      labels:
+        serverity: page
+      annotations:
+        summary: "{{ $labels.instance }} net recv percent over threshold "
+        description: "{{ $labels.instance }} net_recv_percent > {{ $value }}"
+
+    - alert: ob_host_net_send_percent_over_threshold
+      expr: rate(node_network_transmit_bytes_total[60s]) > 100000000
+      for: 1m
+      labels:
+        serverity: page
+      annotations:
+        summary: "{{ $labels.instance }} net send percent over threshold "
+        description: "{{ $labels.instance }} net_send_percent > {{ $value }}"
+
+    - alert: ob_host_load1_per_cpu_over_threshold
+      expr: node_load1 > 64
+      for: 1m
+      labels:
+        serverity: page
+      annotations:
+        summary: "{{ $labels.instance }} load1 over threshold "
+        description: "{{ $labels.instance }} load1 > {{ $value }}"
+
+    - alert: ob_host_mem_percent_over_threshold
+      expr: (1 - (node_memory_MemFree_bytes + node_memory_Cached_bytes + node_memory_Buffers_bytes) / node_memory_MemTotal_bytes) * 100 > 90
+      for: 1m
+      labels:
+        serverity: page
+      annotations:
+        summary: "{{ $labels.instance }} memory used percent over threshold "
+        description: "{{ $labels.instance }} memory_used_percent > {{ $value }}"
+
+    - alert: ob_host_disk_readonly
+      expr: node_filesystem_readonly > 0
+      for: 1m
+      labels:
+        serverity: page
+      annotations:
+        summary: "{{ $labels.instance }} {{ $labels.mountpoint }} is readonly "
+        description: "{{ $labels.instance }} {{ $labels.mountpoint }} is readonly"
