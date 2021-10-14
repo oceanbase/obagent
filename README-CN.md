@@ -8,8 +8,7 @@ OBAgent 使用 [MulanPSL - 2.0](https://license.coscl.org.cn/MulanPSL2/index.htm
 
 ## 文档
 
-- [OBAgent 使用方法](docs/obagent-usage.md)。
-- [使用 OBD 部署 OBAgent（planning）](docs/obagent-usage.md)。
+参考 [OBAgent 文档](docs/about-obagent/what-is-obagent.md)。
 
 ## 如何获取
 
