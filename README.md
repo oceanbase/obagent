@@ -8,8 +8,7 @@ OBAgent is under [MulanPubL - 2.0](https://license.coscl.org.cn/MulanPubL-2.0/in
 
 ## Documentation
 
-- [How to use OBAgent](docs/obagent-usage.md).
-- [Deploy OBAgent by using OBD（planning）](docs/obagent-usage.md).
+See [OBAgent Document](docs/about-obagent/what-is-obagent.md).
 
 ## How to get
 
