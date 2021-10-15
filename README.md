@@ -41,14 +41,13 @@ make build-release
 
 ## How to develop
 
-You can develop plugins for OBAgent. For more information, see [Develop plugins for OBAgent](docs/obagent-dev.md).
+You can develop plugins for OBAgent. For more information, see [Develop plugins for OBAgent](docs/develop-guide.md).
 
 ## Contributing
 
 Contributions are warmly welcomed and greatly appreciated. Here are a few ways you can contribute:
 
 - Raise us an [Issue](https://github.com/oceanbase/obagent/issues).
-- Submit Pull Requests. For details, see [How to contribute](CONTRIBUTING.md).
 
 ## Support
 
