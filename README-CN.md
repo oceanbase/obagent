@@ -41,14 +41,13 @@ make build-release
 
 ## 如何开发
 
-您可以为 OBAgent 开发插件。更多信息，参考 [OBAgent 插件开发](docs/obagent-dev.md)。
+您可以为 OBAgent 开发插件。更多信息，参考 [OBAgent 插件开发](docs/develop-guide.md)。
 
 ## 如何贡献
 
 我们十分欢迎并感谢您为我们贡献。以下是您参与贡献的几种方式：
 
 - 向我们提 [Issue](https://github.com/oceanbase/obagent/issues)。
-- 提交 PR，详情参见 [如何贡献](CONTRIBUTING.md)。
 
 ## 获取帮助
 
