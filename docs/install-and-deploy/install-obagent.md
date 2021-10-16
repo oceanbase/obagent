@@ -56,4 +56,4 @@ OBAgent 的安装目录包含三个子目录：`bin`、`conf` 和 `run`。OBAgen
 └── run
 ```
 
-其中，`bin` 用来存放二进制文件。`conf` 用来存放程序启动配置、模块配置模板、KV 变量配置和 Prometheus 的配置模板。`run` 用来存放运行文件。更多关于配置文件的信息，参考 配置文件参考(LINK TODO)。
+其中，`bin` 用来存放二进制文件。`conf` 用来存放程序启动配置、模块配置模板、KV 变量配置和 Prometheus 的配置模板。`run` 用来存放运行文件。更多关于配置文件的信息，参考 [monagent 配置文件](../config-reference/monagent-config.md)。
