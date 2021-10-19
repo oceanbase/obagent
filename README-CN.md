@@ -4,7 +4,7 @@ OBAgent 是一个监控采集框架。OBAgent 支持推、拉两种数据采集�
 
 ## 许可证
 
-OBAgent 使用 [MulanPSL - 2.0](https://license.coscl.org.cn/MulanPSL2/index.html) 许可证。您可以免费复制及使用源代码。当您修改或分发源代码时，请遵守木兰协议。
+OBAgent 使用 [MulanPSL - 2.0](http://license.coscl.org.cn/MulanPSL2) 许可证。您可以免费复制及使用源代码。当您修改或分发源代码时，请遵守木兰协议。
 
 ## 文档
 
