@@ -1,0 +1,13 @@
+.DS_Store
+.vscode
+.idea
+*.iml
+*.swp
+*.log
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
