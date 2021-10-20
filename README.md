@@ -21,7 +21,7 @@ To build OBAgent, make sure that your Go version is 1.14 or above.
 OBAgent supplies RPM package. You can download it from the [Release page](https://mirrors.aliyun.com/oceanbase/community/stable/el/7/x86_64/) and install it by using this command:
 
 ```bash
-rpm -ivh obagent-0.1-1.alios7.x86_64.rpm
+rpm -ivh obagent-1.0.0-1.el7.x86_64.rpm
 ```
 
 ### From source code

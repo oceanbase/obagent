@@ -8,7 +8,7 @@
 
 ## RPM 包
 
-OBAgent 提供 RPM 包，您可以去 [Release 页面](https://mirrors.aliyun.com/oceanbase/community/stable/el/7/x86_64/obagent-1.0.0-1.el7.x86_64.rpm) 下载 RPM 包，然后使用以下命令安装：
+OBAgent 提供 RPM 包，您可以去 [Release 页面](https://mirrors.aliyun.com/oceanbase/community/stable/el/7/x86_64/) 下载 RPM 包，然后使用以下命令安装：
 
 ```bash
 rpm -ivh obagent-1.0.0-1.el7.x86_64.rpm
