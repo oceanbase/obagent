@@ -1,6 +1,6 @@
 include Makefile.common
 
-.PHONY: build monagent
+.PHONY: all test clean build monagent
 
 default: clean fmt build
 
