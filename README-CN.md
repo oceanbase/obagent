@@ -4,7 +4,7 @@ OBAgent 是一个监控采集框架。OBAgent 支持推、拉两种数据采集�
 
 ## 许可证
 
-OBAgent 使用 [MulanPSL - 2.0](https://license.coscl.org.cn/MulanPSL2/index.html) 许可证。您可以免费复制及使用源代码。当您修改或分发源代码时，请遵守木兰协议。
+OBAgent 使用 [MulanPSL - 2.0](http://license.coscl.org.cn/MulanPSL2) 许可证。您可以免费复制及使用源代码。当您修改或分发源代码时，请遵守木兰协议。
 
 ## 文档
 
@@ -18,10 +18,10 @@ OBAgent 使用 [MulanPSL - 2.0](https://license.coscl.org.cn/MulanPSL2/index.htm
 
 ### RPM 包
 
-OBAgent 提供 RPM 包，您可以去 Release 页面（link todo）下载 RPM 包，然后使用以下命令安装：
+OBAgent 提供 RPM 包，您可以去 [Release 页面](https://mirrors.aliyun.com/oceanbase/community/stable/el/7/x86_64/) 下载 RPM 包，然后使用以下命令安装：
 
 ```bash
-rpm -ivh obagent-0.1-1.alios7.x86_64.rpm
+rpm -ivh obagent-1.0.0-1.el7.x86_64.rpm
 ```
 
 ### 通过源码构建
@@ -41,14 +41,13 @@ make build-release
 
 ## 如何开发
 
-您可以为 OBAgent 开发插件。更多信息，参考 [OBAgent 插件开发](docs/obagent-dev.md)。
+您可以为 OBAgent 开发插件。更多信息，参考 [OBAgent 插件开发](docs/develop-guide.md)。
 
 ## 如何贡献
 
 我们十分欢迎并感谢您为我们贡献。以下是您参与贡献的几种方式：
 
 - 向我们提 [Issue](https://github.com/oceanbase/obagent/issues)。
-- 提交 PR，详情参见 [如何贡献](CONTRIBUTING.md)。
 
 ## 获取帮助
 

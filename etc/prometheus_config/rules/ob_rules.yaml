@@ -38,7 +38,7 @@ groups:
         description: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} error index table count is {{ $value }}"
 
     - alert: ob_cluster_merge_timeout
-      expr: max(ob_zone_stat{name="is_merge_timeout"}) by (ob_cluster_name, ob_cluster_id) = 1
+      expr: max(ob_zone_stat{name="is_merge_timeout"}) by (ob_cluster_name, ob_cluster_id) == 1
       for: 1m
       labels:
         serverity: page
@@ -47,7 +47,7 @@ groups:
         description: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} merge time out"
 
     - alert: ob_cluster_merge_error
-      expr: max(ob_zone_stat{name="is_merge_error"}) by (ob_cluster_name, ob_cluster_id) = 1
+      expr: max(ob_zone_stat{name="is_merge_error"}) by (ob_cluster_name, ob_cluster_id) == 1
       for: 1m
       labels:
         serverity: page

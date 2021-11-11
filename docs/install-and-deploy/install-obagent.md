@@ -8,7 +8,7 @@
 
 ## RPM 包
 
-OBAgent 提供 RPM 包，您可以去 [Release 页面](https://mirrors.aliyun.com/oceanbase/community/stable/el/7/x86_64/obagent-1.0.0-1.el7.x86_64.rpm) 下载 RPM 包，然后使用以下命令安装：
+OBAgent 提供 RPM 包，您可以去 [Release 页面](https://mirrors.aliyun.com/oceanbase/community/stable/el/7/x86_64/) 下载 RPM 包，然后使用以下命令安装：
 
 ```bash
 rpm -ivh obagent-1.0.0-1.el7.x86_64.rpm
@@ -56,4 +56,4 @@ OBAgent 的安装目录包含三个子目录：`bin`、`conf` 和 `run`。OBAgen
 └── run
 ```
 
-其中，`bin` 用来存放二进制文件。`conf` 用来存放程序启动配置、模块配置模板、KV 变量配置和 Prometheus 的配置模板。`run` 用来存放运行文件。更多关于配置文件的信息，参考 配置文件参考(LINK TODO)。
+其中，`bin` 用来存放二进制文件。`conf` 用来存放程序启动配置、模块配置模板、KV 变量配置和 Prometheus 的配置模板。`run` 用来存放运行文件。更多关于配置文件的信息，参考 [monagent 配置文件](../config-reference/monagent-config.md)。

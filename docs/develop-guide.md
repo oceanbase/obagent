@@ -4,7 +4,7 @@ OBAgent 是一个插件驱动的监控采集框架。要扩展 OBAgent 的功能
 
 ## OBAgent 数据处理流程
 
-![Screenshot 2021-09-15 at 11.36.11.png](https://intranetproxy.alipay.com/skylark/lark/0/2021/png/28412/1631676986085-49f40134-9502-438b-bb32-5a3ee6591fbc.png#clientId=u89a16740-3189-4&from=ui&id=ucf4512dc&margin=%5Bobject%20Object%5D&name=Screenshot%202021-09-15%20at%2011.36.11.png&originHeight=868&originWidth=1638&originalType=binary&ratio=1&size=108483&status=done&style=none&taskId=uc6b3bf07-12ab-4e56-9568-bdab0001cc4)
+![OBAgent数据处理流程图](https://github.com/Xjxjy/obagent/blob/master/picture/OBAgent-Process.png)
 
 OBAgent 的数据处理流程包括数据采集、处理和上报，需要用到的插件包含输入插件（Inputs）、处理插件（Process）、输出插件（OutPuts 和 Exporter）。插件详细信息，参考 [外部插件](#外部插件) 章节。
 
