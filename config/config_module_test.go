@@ -67,6 +67,18 @@ configs:
       value: 10s
     - key: foo.bar.bar
       value: 3306`
+
+fooModuleYaml = `modules:
+    -
+      module: foo
+      moduleType: fooType
+      process: ocp_mgragent
+      config:
+        foo: ${foo.foo}
+        fooNoDefine: ${foo.not.defined}
+        bar:
+          bar: ${foo.bar.bar}
+          duration: ${foo.bar.duration}`
 )
 
 func _init(t *testing.T) string {
@@ -116,6 +128,8 @@ func _init(t *testing.T) string {
 	moduleConfigDir := filepath.Join(tempDir, "module_config")
 	err := os.MkdirAll(moduleConfigDir, 0755)
 	assert.Nil(t, err)
+    err = ioutil.WriteFile(filepath.Join(moduleConfigDir, "foo.yaml"), []byte(fooModuleYaml), 0755)
+    assert.Nil(t, err)
 
 	configPropertiesDir := filepath.Join(tempDir, "config_properties")
 	err = os.MkdirAll(configPropertiesDir, 0755)
@@ -197,7 +211,6 @@ func TestModuleConfigCallback_Success(t *testing.T) {
 			So(fooServer.Foo.Bar.Bar, ShouldEqual, 3306)
 			So(fooServer.Foo.Bar.Duration, ShouldEqual, "10s")
 		})
-
 	})
 }
 
