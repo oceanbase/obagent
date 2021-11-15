@@ -13,14 +13,11 @@
 package prometheus
 
 import (
-	"fmt"
-	"math"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
-	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
@@ -123,110 +120,11 @@ func collect(client *http.Client, url string, metricsTotal *[]metric.Metric, wai
 	}
 
 	var metrics []metric.Metric
-	now := time.Now()
 	for _, metricFamily := range metricFamilies {
-
-		for _, m := range metricFamily.Metric {
-			tags := makeLabels(m, nil)
-			var fields map[string]interface{}
-
-			switch metricFamily.GetType() {
-
-			case dto.MetricType_SUMMARY:
-				fields = makeQuantiles(m)
-				fields["count"] = float64(m.GetSummary().GetSampleCount())
-				fields["sum"] = m.GetSummary().GetSampleSum()
-
-			case dto.MetricType_HISTOGRAM:
-				fields = makeBuckets(m)
-				fields["count"] = float64(m.GetHistogram().GetSampleCount())
-				fields["sum"] = m.GetHistogram().GetSampleSum()
-
-			default:
-				fields = getNameAndValue(m)
-			}
-
-			if len(fields) > 0 {
-				var t time.Time
-				if m.TimestampMs != nil && *m.TimestampMs > 0 {
-					t = time.Unix(0, *m.TimestampMs*1000000)
-				} else {
-					t = now
-				}
-				newMetric := metric.NewMetric(metricFamily.GetName(), fields, tags, t, ValueType(metricFamily.GetType()))
-
-				metrics = append(metrics, newMetric)
-			}
-
-		}
-
+		metricsFromMetricFamily := metric.ParseFromMetricFamily(metricFamily)
+		metrics = append(metrics, metricsFromMetricFamily...)
 	}
 	mutex.Lock()
 	*metricsTotal = append(*metricsTotal, metrics...)
 	mutex.Unlock()
-}
-
-func makeLabels(m *dto.Metric, defaultTags map[string]string) map[string]string {
-	result := map[string]string{}
-
-	for key, value := range defaultTags {
-		result[key] = value
-	}
-
-	for _, lp := range m.Label {
-		result[lp.GetName()] = lp.GetValue()
-	}
-
-	return result
-}
-
-func makeQuantiles(m *dto.Metric) map[string]interface{} {
-	fields := make(map[string]interface{})
-	for _, q := range m.GetSummary().Quantile {
-		if !math.IsNaN(q.GetValue()) {
-			fields[fmt.Sprint(q.GetQuantile())] = q.GetValue()
-		}
-	}
-	return fields
-}
-
-func makeBuckets(m *dto.Metric) map[string]interface{} {
-	fields := make(map[string]interface{})
-	for _, b := range m.GetHistogram().Bucket {
-		fields[fmt.Sprint(b.GetUpperBound())] = float64(b.GetCumulativeCount())
-	}
-	return fields
-}
-
-func getNameAndValue(m *dto.Metric) map[string]interface{} {
-	fields := make(map[string]interface{})
-	if m.Gauge != nil {
-		if !math.IsNaN(m.GetGauge().GetValue()) {
-			fields["gauge"] = m.GetGauge().GetValue()
-		}
-	} else if m.Counter != nil {
-		if !math.IsNaN(m.GetCounter().GetValue()) {
-			fields["counter"] = m.GetCounter().GetValue()
-		}
-	} else if m.Untyped != nil {
-		if !math.IsNaN(m.GetUntyped().GetValue()) {
-			fields["value"] = m.GetUntyped().GetValue()
-		}
-	}
-	return fields
-}
-
-func ValueType(metricType dto.MetricType) metric.Type {
-	switch metricType {
-	case dto.MetricType_COUNTER:
-		return metric.Counter
-	case dto.MetricType_GAUGE:
-		return metric.Gauge
-	case dto.MetricType_SUMMARY:
-		return metric.Summary
-	case dto.MetricType_HISTOGRAM:
-		return metric.Histogram
-	default:
-		return metric.Untyped
-	}
 }
