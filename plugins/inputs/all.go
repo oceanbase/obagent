@@ -23,6 +23,9 @@ func init() {
 	plugins.GetInputManager().Register("mysqlTableInput", func() plugins.Input {
 		return &mysql.TableInput{}
 	})
+	plugins.GetInputManager().Register("mysqldInput", func() plugins.Input {
+		return &mysql.MysqldExporter{}
+	})
 	plugins.GetInputManager().Register("nodeExporterInput", func() plugins.Input {
 		return &nodeexporter.NodeExporter{}
 	})
