@@ -80,7 +80,7 @@ obd cluster start <deploy name> [flags]
 
 > 说明：您需要安装 Prometheus。
 
-运行以下命令，启动 Prometheus：
+运行以下命令，启动 Prometheus, obagent 中的配置文件模版 obd 已经进行了替换，可以复制该配置文件到部署 Prometheus 的主机，然后直接使用该配置文件用如下命令启动 prometheus ：
 
 ```bash
 ./prometheus --config.file=./prometheus.yaml
@@ -109,6 +109,17 @@ groups:
         summary: "{{ $labels.instance }} disk full "
         description: "{{ $labels.instance }} disk > {{ $value }}  "
 ```
+
+### （可选）部署与配置 Grafana
+
+- 下载并解压 Grafana。
+- 启动 Grafana。
+    ```bash
+    ./bin/grafana-server
+    ```
+- 登陆 grafana 并且修改密码，第一次登陆默认账号密码都是 admin。
+- 配置 prometheus 为数据源, 添加数据源的方式参考 [grafana 文档](https://grafana.com/docs/grafana/v7.5/datasources/add-a-data-source/)。
+- 导入 dashboard, 针对 OB 和主机指标的配置已经发布到grafana，id 分别为 15215, 15216, 导入 dashboard 的方式参考 [grafana 文档](https://grafana.com/docs/grafana/v7.5/dashboards/export-import/)。
 
 ## （可选）更新 KV 配置
 

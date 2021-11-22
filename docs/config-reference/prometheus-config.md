@@ -9,7 +9,7 @@
 ```yaml
 # OBAgent 的 RPM 包中包含 Prometheus 的配置模版，您可以根据实际情况修改。
 # 要开启基础认证，您需要配置 {http_basic_auth_user} 和 {http_basic_auth_password}。
-# {target} 替换成主机的 IP 和 端口号
+# {target} 替换成监控目标主机的 IP 和 端口号, 如果有多个监控目标，需要配置多行，每个监控目标一行。
 # rules 目录包含两个报警配置模版，分别是默认的主机和 OceanBase 数据库的报警配置。如需自定义报警项，您可以参考此目录。
 
 # 全局配置
