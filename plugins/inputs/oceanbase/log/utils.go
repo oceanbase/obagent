@@ -31,8 +31,8 @@ type Config struct {
 }
 
 type LogInput struct {
-    config *Config
-    logAnalyzer ILogAnalyzer
+	config      *Config
+	logAnalyzer ILogAnalyzer
 }
 
 func (l *LogInput) Init(config map[string]interface{}) error {
@@ -40,14 +40,14 @@ func (l *LogInput) Init(config map[string]interface{}) error {
 }
 
 type filterRuleInfo struct {
-        reg        *regexp.Regexp
-        expireTime time.Time
+	reg        *regexp.Regexp
+	expireTime time.Time
 }
 
 type logFileInfo struct {
-        fileDesc *os.File
-        // 该文件已经写满了，并被重命名过
-        isRenamed bool
+	fileDesc *os.File
+	// 该文件已经写满了，并被重命名过
+	isRenamed bool
 }
 
 type reportedError struct {

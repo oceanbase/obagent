@@ -12,5 +12,13 @@
 
 package outputs
 
+import (
+	"github.com/oceanbase/obagent/plugins"
+	"github.com/oceanbase/obagent/plugins/outputs/prometheus"
+)
+
 func init() {
+	plugins.GetOutputManager().Register("alertmanagerOutput", func() plugins.Output {
+		return &prometheus.AlertmanagerOutput{}
+	})
 }
