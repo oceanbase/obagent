@@ -23,10 +23,9 @@ type logFileInfo struct {
 	isRenamed bool
 }
 
-
 type LogConfig struct {
-        LogDir string `yaml:"logDir"`
-        LogFileName string `yaml:"logFileName"`
+	LogDir      string `yaml:"logDir"`
+	LogFileName string `yaml:"logFileName"`
 }
 
 type reportedError struct {
