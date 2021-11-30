@@ -12,42 +12,21 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/oceanbase/obagent/config"
 )
 
-const sampleConfig = `
-maxDelay: 300s
-batchCount: 1000
-`
-
-const description = `
-collect ob error logs
-`
-
-type Config struct {
-	MaxDelay   []string      `yaml:"maxDelay"`
-	batchCount time.Duration `yaml:"httpTimeout"`
-}
-
-type LogInput struct {
-	config      *Config
-	logAnalyzer ILogAnalyzer
-}
-
-func (l *LogInput) Init(config map[string]interface{}) error {
-
-}
-
-type filterRuleInfo struct {
-	reg        *regexp.Regexp
-	expireTime time.Time
-}
+const logAtLayout = "2006-01-02 15:04:05.000000"
+const logTimeInFileNameLayout = "20060102150405"
 
 type logFileInfo struct {
 	fileDesc *os.File
 	// 该文件已经写满了，并被重命名过
 	isRenamed bool
+}
+
+
+type LogConfig struct {
+        LogDir string `yaml:"logDir"`
+        LogFileName string `yaml:"logFileName"`
 }
 
 type reportedError struct {
@@ -135,7 +114,7 @@ func (l *logAnalyzer) getLogAt(logLine string) (time.Time, error) {
 	return logAt, nil
 }
 
-func compileFilterRules(filterRules []*config.FilterRule) (map[string][]*filterRuleInfo, error) {
+func compileFilterRules(filterRules []*FilterRule) (map[string][]*filterRuleInfo, error) {
 	filterRuleRegexps := make(map[string][]*filterRuleInfo)
 	if filterRules == nil {
 		return filterRuleRegexps, nil
@@ -158,12 +137,12 @@ func compileFilterRules(filterRules []*config.FilterRule) (map[string][]*filterR
 	return filterRuleRegexps, nil
 }
 
-func processLogAlarmFiltersConf(logFilterRulesJsonContent string) ([]*config.FilterRule, error) {
+func processLogAlarmFiltersConf(logFilterRulesJsonContent string) ([]*FilterRule, error) {
 	if logFilterRulesJsonContent == "" {
 		return nil, nil
 	}
 	jsonStr := []byte(logFilterRulesJsonContent)
-	var filterRules []*config.FilterRule
+	var filterRules []*FilterRule
 	err := json.Unmarshal(jsonStr, &filterRules)
 	if err != nil {
 		return nil, err
