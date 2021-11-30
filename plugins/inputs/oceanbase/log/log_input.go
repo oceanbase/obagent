@@ -17,8 +17,30 @@ import (
 )
 
 const sampleConfig = `
-maxDelay: 300s
-batchCount: 1000
+expireTime: 300s
+collectDelay: 1s
+LogServiceConfig:
+  rootservice:
+    excludeRegexes:
+      - hello
+      - world
+    logConfig:
+      logDir: /home/admin/oceanbase/log
+      logFileName: rootservice.log.wf
+  election:
+    excludeRegexes:
+      - hello
+      - world
+    logConfig:
+      logDir: /home/admin/oceanbase/log
+      logFileName: election.log.wf
+  observer:
+    excludeRegexes:
+      - hello
+      - world
+    logConfig:
+      logDir: /home/admin/oceanbase/log
+      logFileName: observer.log.wf
 `
 
 const description = `
@@ -42,7 +64,6 @@ type Config struct {
 	LogServiceConfig map[ServiceType]*LogCollectConfig `yaml:"logServiceConfig"`
 	CollectDelay     time.Duration                     `yaml:"collectDelay"`
 	ExpireTime       time.Duration                     `yaml:"expireTime"`
-	BatchCount       int                               `yaml:"batchCount"`
 }
 
 type ErrorLogInput struct {
@@ -108,7 +129,7 @@ func (e *ErrorLogInput) doCollect(service ServiceType) {
 			}
 		default:
 			e.collectErrorLogs(service)
-			time.Sleep(time.Second)
+			time.Sleep(e.config.CollectDelay)
 		}
 	}
 }
@@ -197,7 +218,7 @@ func (e *ErrorLogInput) watchFile() {
 		default:
 			// open file and set fd in file process queue
 			e.watchFileChanges()
-			time.Sleep(time.Second)
+			time.Sleep(e.config.CollectDelay)
 		}
 	}
 }
@@ -275,9 +296,4 @@ func (e *ErrorLogInput) Collect() ([]metric.Metric, error) {
 		}
 	}
 	return metrics, nil
-}
-
-type filterRuleInfo struct {
-	reg        *regexp.Regexp
-	expireTime time.Time
 }
