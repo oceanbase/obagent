@@ -1,7 +1,7 @@
 //go:build linux
 // +build linux
 
-package log_tailer
+package log
 
 import (
 	"os"

@@ -1,7 +1,7 @@
 //go:build darwin
 // +build darwin
 
-package log_tailer
+package log
 
 import (
 	"os"

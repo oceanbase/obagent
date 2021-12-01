@@ -19,7 +19,7 @@ import (
 const sampleConfig = `
 expireTime: 300s
 collectDelay: 1s
-LogServiceConfig:
+logServiceConfig:
   rootservice:
     excludeRegexes:
       - hello
@@ -99,12 +99,22 @@ func (e *ErrorLogInput) Init(config map[string]interface{}) error {
 	e.logAnalyzer = NewLogAnalyzer()
 	e.logProcessQueue = make(map[ServiceType]*processQueue)
 
-	// start go routine to add log file to logProcessQueue
-	go e.watchFile()
+	e.ctx, e.cancel = context.WithCancel(context.Background())
+
+	for service := range e.config.LogServiceConfig {
+		q := &processQueue{
+			queue: make([]*logFileInfo, 0, 8),
+			mutex: sync.Mutex{},
+		}
+		e.logProcessQueue[service] = q
+	}
 
 	for service := range e.config.LogServiceConfig {
 		go e.doCollect(service)
 	}
+
+	// start go routine to add log file to logProcessQueue
+	go e.watchFile()
 
 	log.Info("error log input init with config", e.config)
 
@@ -143,8 +153,8 @@ func (e *ErrorLogInput) collectErrorLogs(service ServiceType) {
 			log.Warnf("service %s has no process queue", service)
 		} else {
 			// read head of queue
-			logFile := q.getHead()
-			fdScanner := bufio.NewScanner(logFile.fileDesc)
+			head := q.getHead()
+			fdScanner := bufio.NewScanner(head.fileDesc)
 			logMetrics := make([]metric.Metric, 0, 8)
 			for fdScanner.Scan() {
 				line := fdScanner.Text()
@@ -160,8 +170,9 @@ func (e *ErrorLogInput) collectErrorLogs(service ServiceType) {
 			if len(logMetrics) > 0 {
 				e.metricBufferChan <- logMetrics
 			}
-			if logFile.isRenamed {
-				logFile.fileDesc.Close()
+
+			if q.getHeadIsRenamed() {
+				head.fileDesc.Close()
 				q.popHead()
 			}
 		}
@@ -199,6 +210,9 @@ func (e *ErrorLogInput) isFiltered(service ServiceType, line string) bool {
 	// TODO: compile first
 	c, found := e.config.LogServiceConfig[service]
 	if found {
+		if c.ExcludeRegexes == nil {
+			return false
+		}
 		for _, regex := range c.ExcludeRegexes {
 			match, _ := regexp.MatchString(regex, line)
 			if match {
@@ -237,7 +251,7 @@ func (e *ErrorLogInput) watchFileChanges() {
 		log.Infof("chekc log file of service: %s", service)
 		queue, exists := e.logProcessQueue[service]
 		logFileRealPath := fmt.Sprintf("%s/%s", logCollectConfig.LogConfig.LogDir, logCollectConfig.LogConfig.LogFileName)
-		if exists {
+		if exists && queue.getQueueLen() > 0 {
 			info := queue.getHead()
 			if logCollectConfig.LogConfig.LogFileName == info.fileDesc.Name() {
 				log.Debugf("log file of service %s not change", service)
@@ -263,16 +277,11 @@ func (e *ErrorLogInput) watchFileChanges() {
 				continue
 			} else {
 				// initialize process queue
-				q := &processQueue{
-					queue: make([]*logFileInfo, 0, 8),
-					mutex: sync.Mutex{},
-				}
-				// add new file into queue
+				q := e.logProcessQueue[service]
 				q.pushBack(&logFileInfo{
 					fileDesc:  newFileDesc,
 					isRenamed: false,
 				})
-				e.logProcessQueue[service] = q
 			}
 		}
 	}

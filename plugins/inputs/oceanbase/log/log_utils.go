@@ -1,17 +1,12 @@
 package log
 
 import (
-	"context"
-	"encoding/json"
 	"os"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const logAtLayout = "2006-01-02 15:04:05.000000"
@@ -35,7 +30,6 @@ type reportedError struct {
 
 type ILogAnalyzer interface {
 	isErrLog(logLine string) bool
-	isMatchFilterRules(logAt time.Time, logLine string, filterRuleRegexps []*filterRuleInfo) bool
 	getErrCode(logLine string) (int, error)
 	getLogAt(logLine string) (time.Time, error)
 }
@@ -57,24 +51,6 @@ func (l *logAnalyzer) isErrLog(logLine string) bool {
 	// example: [2020-08-07 05:55:44.377075] ERROR  [RS] ob_server_table_operator.cpp:376 [151575][4][Y0-0000000000000000] [lt = 5] [dc =0] svr_status(svr_status = "active", display_status =1)
 	if len(logLine) > 34 {
 		return "ERROR" == logLine[29:34]
-	}
-
-	return false
-}
-
-// isMatchFilterRules 是否匹配过滤规则
-func (l *logAnalyzer) isMatchFilterRules(logAt time.Time, logLine string, filterRuleRegexps []*filterRuleInfo) bool {
-	for _, rule := range filterRuleRegexps {
-		matched := logAt.Before(rule.expireTime) && rule.reg.MatchString(logLine)
-		if matched {
-			log.WithFields(log.Fields{
-				"rule":       rule.reg.String(),
-				"logLine":    logLine,
-				"logAt":      logAt,
-				"expireTime": rule.expireTime,
-			}).Info("match a filter rule")
-			return true
-		}
 	}
 
 	return false
@@ -113,83 +89,6 @@ func (l *logAnalyzer) getLogAt(logLine string) (time.Time, error) {
 	return logAt, nil
 }
 
-func compileFilterRules(filterRules []*FilterRule) (map[string][]*filterRuleInfo, error) {
-	filterRuleRegexps := make(map[string][]*filterRuleInfo)
-	if filterRules == nil {
-		return filterRuleRegexps, nil
-	}
-	for _, rule := range filterRules {
-		reg, err := regexp.Compile(rule.Keyword)
-		if err != nil {
-			return nil, err
-		}
-		ruleInfo := &filterRuleInfo{
-			reg:        reg,
-			expireTime: rule.ExpireTime,
-		}
-		if _, ok := filterRuleRegexps[rule.ServerType]; !ok {
-			filterRuleRegexps[rule.ServerType] = []*filterRuleInfo{ruleInfo}
-		} else {
-			filterRuleRegexps[rule.ServerType] = append(filterRuleRegexps[rule.ServerType], ruleInfo)
-		}
-	}
-	return filterRuleRegexps, nil
-}
-
-func processLogAlarmFiltersConf(logFilterRulesJsonContent string) ([]*FilterRule, error) {
-	if logFilterRulesJsonContent == "" {
-		return nil, nil
-	}
-	jsonStr := []byte(logFilterRulesJsonContent)
-	var filterRules []*FilterRule
-	err := json.Unmarshal(jsonStr, &filterRules)
-	if err != nil {
-		return nil, err
-	}
-	return filterRules, nil
-}
-
-func getTimeFromFileName(info os.FileInfo) (time.Time, error) {
-	fileTime := info.ModTime()
-	fileName := info.Name()
-	lastDotIdx := strings.LastIndex(fileName, ".")
-	timeStr := fileName[lastDotIdx+1:]
-	if lastDotIdx == -1 || timeStr == "" {
-		return fileTime, nil
-	}
-	parsedTime, err := time.ParseInLocation(logTimeInFileNameLayout, timeStr, time.Local)
-	if err != nil {
-		return fileTime, nil
-	}
-	return parsedTime, nil
-}
-
-// findFilesAndSortByMTime 获取路径下匹配正则的文件 & 文件大小（按照修改时间从旧到新排序）
-func findFilesAndSortByMTime(ctx context.Context, dir, fileName string, start, end time.Time) ([]os.FileInfo, error) {
-	ctxLog := log.WithContext(ctx).WithFields(log.Fields{
-		"dir":      dir,
-		"fileName": fileName,
-		"start":    start,
-		"end":      end,
-	})
-	mTime := -1 * end.Sub(start)
-	matchedFiles, err := libFile.FindFilesByRegexAndMTime(ctx, dir, fileName, matchString, mTime, end, getTimeFromFileName)
-	if err != nil {
-		return nil, err
-	}
-	sort.Sort(ByMTime(matchedFiles))
-
-	ctxLog.WithField("matchedFiles", matchedFiles).Info("invoke FindFilesByRegexAndMTime")
-	return matchedFiles, nil
-}
-
-// ByMTime  implements sort.Interface for []os.FileInfo based on ModTime().
-type ByMTime []os.FileInfo
-
-func (a ByMTime) Len() int           { return len(a) }
-func (a ByMTime) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByMTime) Less(i, j int) bool { return a[i].ModTime().Before(a[j].ModTime()) }
-
 func matchString(reg string, content string) (matched bool, err error) {
 	matched = strings.Contains(content, reg)
 	return
@@ -201,6 +100,8 @@ type processQueue struct {
 }
 
 func (p *processQueue) getQueueLen() int {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	return len(p.queue)
 }
 
@@ -250,12 +151,13 @@ func (p *processQueue) setHeadIsRenameTrue() {
 	p.queue[0].isRenamed = true
 }
 
-func getFileStatInfo(ctx context.Context, file *os.File) (*FileInfoEx, error) {
-	ctxLog := log.WithContext(ctx)
-	ret, err := FileInfo(file)
-	if err != nil {
-		ctxLog.WithError(err).Error("failed get file info")
-		return nil, err
+func (p *processQueue) getHeadIsRenamed() bool {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	if p.getQueueLen() == 0 {
+		return false
 	}
-	return ret, nil
+
+	return p.queue[0].isRenamed
 }
