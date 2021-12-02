@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -85,6 +86,7 @@ func (a *AlertmanagerOutput) Description() string {
 }
 
 func (a *AlertmanagerOutput) Write(metrics []metric.Metric) error {
+	log.Debugf("got metrics: %v", metrics)
 	for len(metrics) > 0 {
 		count := a.config.BatchCount
 		if len(metrics) < count {
@@ -103,27 +105,36 @@ func (a *AlertmanagerOutput) schedule() {
 			break
 
 		case metrics := <-a.taskChan:
-			a.sendAlarm(metrics)
+			err := a.sendAlarm(metrics)
+			log.WithError(err).Errorf("send alarm got error: %v", err)
 		}
 	}
 }
 
 func (a *AlertmanagerOutput) sendAlarm(metrics []metric.Metric) error {
 
+	log.Debugf("send alarm metrics: %v", metrics)
 	alarmList := make([]map[string]interface{}, 0, a.config.BatchCount)
 	for _, metricEntry := range metrics {
 		alarmList = append(alarmList, a.convertMetricToAlarm(metricEntry))
 	}
 
 	jsonData, err := json.Marshal(alarmList)
+
+	log.Debugf("send alarm metrics request body: %s", jsonData)
+
 	body := bytes.NewBuffer(jsonData)
-	req, err := http.NewRequest(http.MethodPost, a.config.Address, body)
+	pushAlertsAddress := fmt.Sprintf("%s/%s", a.config.Address, "api/v2/alerts")
+	req, err := http.NewRequest(http.MethodPost, pushAlertsAddress, body)
 
 	if err != nil {
 		return errors.Wrap(err, "generate http request")
 	}
 
+	req.Header.Set("Content-Type", "application/json")
+
 	resp, err := a.httpClient.Do(req)
+	log.Debugf("send alarm got response: %v", resp)
 	if err != nil {
 		return errors.Wrap(err, "do query")
 	}

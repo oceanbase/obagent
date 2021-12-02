@@ -98,6 +98,7 @@ func (e *ErrorLogInput) Init(config map[string]interface{}) error {
 
 	e.logAnalyzer = NewLogAnalyzer()
 	e.logProcessQueue = make(map[ServiceType]*processQueue)
+	e.metricBufferChan = make(chan []metric.Metric, 1000)
 
 	e.ctx, e.cancel = context.WithCancel(context.Background())
 
@@ -138,9 +139,11 @@ func (e *ErrorLogInput) doCollect(service ServiceType) {
 				}
 			}
 		default:
+			log.Info("start collect error log one round")
 			e.collectErrorLogs(service)
-			time.Sleep(e.config.CollectDelay)
+			log.Info("finish collect error log one round")
 		}
+		time.Sleep(e.config.CollectDelay)
 	}
 }
 
@@ -154,6 +157,7 @@ func (e *ErrorLogInput) collectErrorLogs(service ServiceType) {
 		} else {
 			// read head of queue
 			head := q.getHead()
+			log.Debugf("process log file of service %s %s", service, head.fileDesc.Name())
 			fdScanner := bufio.NewScanner(head.fileDesc)
 			logMetrics := make([]metric.Metric, 0, 8)
 			for fdScanner.Scan() {
@@ -167,6 +171,7 @@ func (e *ErrorLogInput) collectErrorLogs(service ServiceType) {
 					}
 				}
 			}
+
 			if len(logMetrics) > 0 {
 				e.metricBufferChan <- logMetrics
 			}
@@ -180,21 +185,21 @@ func (e *ErrorLogInput) collectErrorLogs(service ServiceType) {
 }
 
 func (e *ErrorLogInput) processLogLine(service ServiceType, line string) metric.Metric {
+	log.Debugf("process log of service %s line %s", service, line)
 	if !e.logAnalyzer.isErrLog(line) {
 		return nil
 	}
 	logAt, err := e.logAnalyzer.getLogAt(line)
 	if err != nil {
 		log.Warnf("parse log time failed %s ", line)
+		return nil
 	}
 	if logAt.Add(e.config.ExpireTime).Before(time.Now()) {
 		log.Debugf("log expired, just skip, %s", line)
 		return nil
 	}
-	errCode, err := e.logAnalyzer.getErrCode(line)
-	if err != nil {
-		log.Warnf("parse log err code failed %s ", line)
-	}
+	errCode, _ := e.logAnalyzer.getErrCode(line)
+
 	if e.isFiltered(service, line) {
 		log.Debugf("log is filtered, %s", line)
 		return nil
@@ -203,7 +208,9 @@ func (e *ErrorLogInput) processLogLine(service ServiceType, line string) metric.
 	tags := make(map[string]string)
 	fields["log_content"] = line
 	tags["error_code"] = fmt.Sprintf("%d", errCode)
-	return metric.NewMetric("oceanbase_log", fields, tags, logAt, metric.Untyped)
+	logMetric := metric.NewMetric("oceanbase_log", fields, tags, logAt, metric.Untyped)
+	log.Debugf("process log of service %s line %s, got metric: %v", service, line, logMetric)
+	return logMetric
 }
 
 func (e *ErrorLogInput) isFiltered(service ServiceType, line string) bool {
@@ -231,9 +238,11 @@ func (e *ErrorLogInput) watchFile() {
 			return
 		default:
 			// open file and set fd in file process queue
+			log.Info("start check log files")
 			e.watchFileChanges()
-			time.Sleep(e.config.CollectDelay)
+			log.Info("finish check log files")
 		}
+		time.Sleep(e.config.CollectDelay)
 	}
 }
 
@@ -248,41 +257,54 @@ func (e *ErrorLogInput) checkAndOpenFile(logFileRealPath string) (*os.File, erro
 
 func (e *ErrorLogInput) watchFileChanges() {
 	for service, logCollectConfig := range e.config.LogServiceConfig {
-		log.Infof("chekc log file of service: %s", service)
+		log.Infof("check log file of service: %s", service)
 		queue, exists := e.logProcessQueue[service]
 		logFileRealPath := fmt.Sprintf("%s/%s", logCollectConfig.LogConfig.LogDir, logCollectConfig.LogConfig.LogFileName)
+		log.Debugf("log file of service %s: %s", service, logFileRealPath)
+		newFileDesc, err := e.checkAndOpenFile(logFileRealPath)
+		if err != nil {
+			log.WithError(err).Errorf("open logfile of service %s %s failed, got error %v", service, logFileRealPath, err)
+			continue
+		}
+		newFileInfo, err := FileInfo(newFileDesc)
+		if err != nil {
+			log.WithError(err).Errorf("check logfile of service %s %s info failed, got error %v", service, logFileRealPath, err)
+			continue
+		}
+
 		if exists && queue.getQueueLen() > 0 {
-			info := queue.getHead()
-			if logCollectConfig.LogConfig.LogFileName == info.fileDesc.Name() {
+			log.Debugf("process queue exists and not empty")
+			tail := queue.getTail()
+			if tail == nil {
+				log.Errorf("queue should not be empty")
+				continue
+			}
+			tailFileInfo, err := FileInfo(tail.fileDesc)
+			if err != nil {
+				log.WithError(err).Errorf("failed to get file info of service %s head", service)
+				continue
+			}
+
+			if newFileInfo.DevId() == tailFileInfo.DevId() && newFileInfo.FileId() == tailFileInfo.FileId() {
 				log.Debugf("log file of service %s not change", service)
 			} else {
 				log.Infof("log file of service %s has changed", service)
-				// open new file and append to queue
-				newFileDesc, err := e.checkAndOpenFile(logFileRealPath)
-				if err != nil {
-					queue.pushBack(&logFileInfo{
-						fileDesc:  newFileDesc,
-						isRenamed: false,
-					})
-				} else {
-					log.Errorf("open file of service %s %s failed", service, logFileRealPath)
-				}
-				queue.setHeadIsRenameTrue()
-			}
-		} else {
-			// first time, create queue, open last file
-			newFileDesc, err := e.checkAndOpenFile(logFileRealPath)
-			if err != nil {
-				log.WithError(err).Errorf("open log file of service %s %s failed", service, logFileRealPath)
-				continue
-			} else {
-				// initialize process queue
-				q := e.logProcessQueue[service]
-				q.pushBack(&logFileInfo{
+				queue.pushBack(&logFileInfo{
 					fileDesc:  newFileDesc,
 					isRenamed: false,
 				})
+				// TODO: should set all node renamed except last one
+				queue.setRenameTrueExceptTail()
 			}
+		} else {
+			log.Debugf("process queue not exists or empty")
+			// first time, create queue, open last file
+			// initialize process queue
+			q := e.logProcessQueue[service]
+			q.pushBack(&logFileInfo{
+				fileDesc:  newFileDesc,
+				isRenamed: false,
+			})
 		}
 	}
 }
@@ -304,5 +326,6 @@ func (e *ErrorLogInput) Collect() ([]metric.Metric, error) {
 			moreMetrics = false
 		}
 	}
+	log.Debugf("got %d metrics, %v", len(metrics), metrics)
 	return metrics, nil
 }
