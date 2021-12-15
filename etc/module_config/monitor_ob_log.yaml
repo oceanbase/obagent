@@ -1,0 +1,63 @@
+errorLogInput: &errorLogInput
+  plugin: errorLogInput
+  config:
+    timeout: 10s
+    pluginConfig:
+      expireTime: 300s
+      collectDelay: 1s
+      logServiceConfig:
+        rootservice:
+          logConfig:
+            logDir: ${monagent.ob.install.path}/log
+            logFileName: rootservice.log.wf
+        election:
+          logConfig:
+            logDir: ${monagent.ob.install.path}/log
+            logFileName: election.log.wf
+        observer:
+          logConfig:
+            logDir: ${monagent.ob.install.path}/log
+            logFileName: observer.log.wf
+
+
+retagProcessor: &retagProcessor
+  plugin: retagProcessor
+  config:
+    timout: 10s
+    pluginConfig:
+      newTags:
+        app: OB
+        svr_ip: ${monagent.host.ip}
+        obzone: ${monagent.ob.zone.name}
+        ob_cluster_id: ${monagent.ob.cluster.id}
+        ob_cluster_name: ${monagent.ob.cluster.name}
+
+alertmanagerOutput: &alertmanagerOutput
+  plugin: alertmanagerOutput
+  config:
+    timout: 10s
+    pluginConfig:
+      address: ${monagent.alertmanager.address}
+      batchCount: 100
+      httpTimeout: 10s
+      retryTimes: 3
+
+modules:
+  - module: monitor.ob.log
+    moduleType: monagent.pipeline
+    process: monagent
+    config:
+      name: monitor.ob.log
+      status: ${monagent.pipeline.ob.log.status}
+      pipelines:
+        - name: node_info
+          config:
+            scheduleStrategy: periodic
+            period: 5s
+          structure:
+            inputs:
+              - <<: *errorLogInput
+            processors:
+              - <<: *retagProcessor
+            output:
+              <<: *alertmanagerOutput
