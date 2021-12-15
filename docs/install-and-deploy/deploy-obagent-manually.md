@@ -45,7 +45,7 @@ OBAgent 提供使用 OBD 部署和手动部署。要手动部署 OBAgent，您�
 > 说明：您需要安装 Prometheus。
 
 1. 配置 Prometheus，详情参考 [Prometheus 配置文件说明](../config-reference/prometheus-config.md)。
-2. 启动 Prometheus。
+2. 将配置好的 Prometheus 配置文件复制到部署 Prometheus 的主机上，然后使用如下命令启动 Prometheus。
 
     ```bash
     ./prometheus --config.file=./prometheus.yaml
@@ -74,6 +74,17 @@ groups:
         summary: "{{ $labels.instance }} disk full "
         description: "{{ $labels.instance }} disk > {{ $value }}  "
 ```
+
+### （可选）步骤4：部署与配置 Grafana
+
+- 下载并解压 Grafana。
+- 启动 Grafana。
+    ```bash
+    ./bin/grafana-server
+    ```
+- 登陆 grafana 并且修改密码，第一次登陆默认账号密码都是 admin。
+- 配置 prometheus 为数据源, 添加数据源的方式参考 [grafana 文档](https://grafana.com/docs/grafana/v7.5/datasources/add-a-data-source/)。
+- 导入 dashboard, 针对 OB 和主机指标的配置已经发布到grafana，id 分别为 15215, 15216, 导入 dashboard 的方式参考 [grafana 文档](https://grafana.com/docs/grafana/v7.5/dashboards/export-import/)。
 
 ## （可选）更新 KV 配置
 
