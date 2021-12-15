@@ -16,6 +16,7 @@ import (
 	"github.com/oceanbase/obagent/plugins"
 	"github.com/oceanbase/obagent/plugins/inputs/mysql"
 	"github.com/oceanbase/obagent/plugins/inputs/nodeexporter"
+	"github.com/oceanbase/obagent/plugins/inputs/oceanbase/log"
 	"github.com/oceanbase/obagent/plugins/inputs/prometheus"
 )
 
@@ -31,5 +32,8 @@ func init() {
 	})
 	plugins.GetInputManager().Register("prometheusInput", func() plugins.Input {
 		return &prometheus.Prometheus{}
+	})
+	plugins.GetInputManager().Register("errorLogInput", func() plugins.Input {
+		return &log.ErrorLogInput{}
 	})
 }

@@ -13,6 +13,9 @@ configs:
     - key: monagent.ob.rpc.port
       value: {rpc_port}
       valueType: int64
+    - key: monagent.ob.install.path
+      value: {ob_install_path}
+      valueType: string
     - key: monagent.host.ip
       value: {host_ip}
       valueType: string
@@ -28,6 +31,12 @@ configs:
     - key: monagent.pipeline.ob.status
       value: {ob_monitor_status}
       valueType: string
+    - key: monagent.pipeline.ob.log.status
+      value: {ob_log_monitor_status}
+      valueType: string
     - key: monagent.pipeline.node.status
       value: {host_monitor_status}
+      valueType: string
+    - key: monagent.alertmanager.address
+      value: {alertmanager_address}
       valueType: string

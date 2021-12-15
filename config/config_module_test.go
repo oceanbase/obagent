@@ -68,7 +68,7 @@ configs:
     - key: foo.bar.bar
       value: 3306`
 
-fooModuleYaml = `modules:
+	fooModuleYaml = `modules:
     -
       module: foo
       moduleType: fooType
@@ -128,8 +128,8 @@ func _init(t *testing.T) string {
 	moduleConfigDir := filepath.Join(tempDir, "module_config")
 	err := os.MkdirAll(moduleConfigDir, 0755)
 	assert.Nil(t, err)
-    err = ioutil.WriteFile(filepath.Join(moduleConfigDir, "foo.yaml"), []byte(fooModuleYaml), 0755)
-    assert.Nil(t, err)
+	err = ioutil.WriteFile(filepath.Join(moduleConfigDir, "foo.yaml"), []byte(fooModuleYaml), 0755)
+	assert.Nil(t, err)
 
 	configPropertiesDir := filepath.Join(tempDir, "config_properties")
 	err = os.MkdirAll(configPropertiesDir, 0755)
