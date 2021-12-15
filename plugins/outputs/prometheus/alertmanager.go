@@ -86,7 +86,6 @@ func (a *AlertmanagerOutput) Description() string {
 }
 
 func (a *AlertmanagerOutput) Write(metrics []metric.Metric) error {
-	log.Debugf("got metrics: %v", metrics)
 	for len(metrics) > 0 {
 		count := a.config.BatchCount
 		if len(metrics) < count {
@@ -112,8 +111,6 @@ func (a *AlertmanagerOutput) schedule() {
 }
 
 func (a *AlertmanagerOutput) sendAlarm(metrics []metric.Metric) error {
-
-	log.Debugf("send alarm metrics: %v", metrics)
 	alarmList := make([]map[string]interface{}, 0, a.config.BatchCount)
 	for _, metricEntry := range metrics {
 		alarmList = append(alarmList, a.convertMetricToAlarm(metricEntry))
@@ -121,7 +118,7 @@ func (a *AlertmanagerOutput) sendAlarm(metrics []metric.Metric) error {
 
 	jsonData, err := json.Marshal(alarmList)
 
-	log.Debugf("send alarm metrics request body: %s", jsonData)
+	log.Debugf("send alarm metrics: %s", jsonData)
 
 	body := bytes.NewBuffer(jsonData)
 	pushAlertsAddress := fmt.Sprintf("%s/%s", a.config.Address, "api/v2/alerts")
@@ -134,7 +131,7 @@ func (a *AlertmanagerOutput) sendAlarm(metrics []metric.Metric) error {
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := a.httpClient.Do(req)
-	log.Debugf("send alarm got response: %v", resp)
+	log.Infof("send alarm got response: %v", resp)
 	if err != nil {
 		return errors.Wrap(err, "do query")
 	}
