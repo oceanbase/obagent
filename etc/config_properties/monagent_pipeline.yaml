@@ -1,5 +1,18 @@
 configVersion: "2021-08-20T07:52:28.5443+08:00"
 configs:
+    - key: monagent.mysql.monitor.user
+      value: mysql_monitor_user
+      valueType: string
+    - key: monagent.mysql.monitor.password
+      value: mysql_monitor_password
+      valueType: string
+      encrypted: true
+    - key: monagent.mysql.sql.port
+      value: 3306
+      valueType: int64
+    - key: monagent.mysql.host
+      value: 127.0.0.1
+      valueType: string
     - key: monagent.ob.monitor.user
       value: {monitor_user}
       valueType: string
@@ -39,4 +52,7 @@ configs:
       valueType: string
     - key: monagent.alertmanager.address
       value: {alertmanager_address}
+      valueType: string
+    - key: monagent.pipeline.mysql.status
+      value: inactive
       valueType: string
