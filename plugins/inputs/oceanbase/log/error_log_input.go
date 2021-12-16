@@ -79,12 +79,13 @@ type Config struct {
 }
 
 type ErrorLogInput struct {
-	config           *Config
-	logAnalyzer      ILogAnalyzer
-	logProcessQueue  map[ServiceType]*processQueue
-	ctx              context.Context
-	cancel           context.CancelFunc
-	metricBufferChan chan []metric.Metric
+	config                   *Config
+	logAnalyzer              ILogAnalyzer
+	logProcessQueue          map[ServiceType]*processQueue
+	ctx                      context.Context
+	cancel                   context.CancelFunc
+	tbackgroundTaskWaitGroup sync.WaitGroup
+	metricBufferChan         chan []metric.Metric
 }
 
 func (e *ErrorLogInput) SampleConfig() string {
@@ -123,10 +124,12 @@ func (e *ErrorLogInput) Init(config map[string]interface{}) error {
 	}
 
 	for service := range e.config.LogServiceConfig {
+		e.backgroundTaskWaitGroup.Add(1)
 		go e.doCollect(service)
 	}
 
 	// start go routine to add log file to logProcessQueue
+	e.backgroundTaskWaitGroup.Add(1)
 	go e.watchFile()
 
 	log.Info("error log input init with config", e.config)
@@ -135,6 +138,7 @@ func (e *ErrorLogInput) Init(config map[string]interface{}) error {
 }
 
 func (e *ErrorLogInput) doCollect(service ServiceType) {
+	defer e.backgroundTaskWaitGroup.Done()
 	for {
 		select {
 		case <-e.ctx.Done():
@@ -221,7 +225,6 @@ func (e *ErrorLogInput) processLogLine(service ServiceType, line string) metric.
 }
 
 func (e *ErrorLogInput) isFiltered(service ServiceType, line string) bool {
-	// TODO: compile first
 	c, found := e.config.LogServiceConfig[service]
 	if found {
 		if c.ExcludeRegexes == nil {
@@ -238,6 +241,7 @@ func (e *ErrorLogInput) isFiltered(service ServiceType, line string) bool {
 }
 
 func (e *ErrorLogInput) watchFile() {
+	defer e.backgroundTaskWaitGroup.Done()
 	for {
 		select {
 		case <-e.ctx.Done():
@@ -297,7 +301,6 @@ func (e *ErrorLogInput) watchFileChanges() {
 					fileDesc:  newFileDesc,
 					isRenamed: false,
 				})
-				// TODO: should set all node renamed except last one
 				queue.setRenameTrueExceptTail()
 			}
 		} else {
@@ -315,6 +318,7 @@ func (e *ErrorLogInput) watchFileChanges() {
 
 func (e *ErrorLogInput) Close() error {
 	e.cancel()
+	e.backgroundTaskWaitGroup.Wait()
 	return nil
 }
 

@@ -19,11 +19,11 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 
-	// "github.com/avast/retry-go/v3"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
@@ -51,11 +51,12 @@ type AlertmanagerOutputConfig struct {
 }
 
 type AlertmanagerOutput struct {
-	config     *AlertmanagerOutputConfig
-	httpClient *http.Client
-	taskChan   chan []metric.Metric
-	ctx        context.Context
-	cancelFunc context.CancelFunc
+	config                  *AlertmanagerOutputConfig
+	httpClient              *http.Client
+	taskChan                chan []metric.Metric
+	ctx                     context.Context
+	cancelFunc              context.CancelFunc
+	backgroundTaskWaitGroup sync.WaitGroup
 }
 
 func (a *AlertmanagerOutput) Init(config map[string]interface{}) error {
@@ -79,6 +80,7 @@ func (a *AlertmanagerOutput) Init(config map[string]interface{}) error {
 		a.httpClient.Timeout = a.config.HttpTimeout
 	}
 
+	a.backgroundTaskWaitGroup.Add(1)
 	go a.schedule()
 
 	log.Infof("alertmanager output inited with config : %v", a.config)
@@ -88,6 +90,7 @@ func (a *AlertmanagerOutput) Init(config map[string]interface{}) error {
 func (a *AlertmanagerOutput) Close() error {
 	a.cancelFunc()
 	close(a.taskChan)
+	a.backgroundTaskWaitGroup.Wait()
 	return nil
 }
 
@@ -112,6 +115,7 @@ func (a *AlertmanagerOutput) Write(metrics []metric.Metric) error {
 }
 
 func (a *AlertmanagerOutput) schedule() {
+	a.backgroundTaskWaitGroup.Done()
 	for {
 		select {
 		case <-a.ctx.Done():
