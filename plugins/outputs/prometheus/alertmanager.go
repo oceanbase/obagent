@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -58,6 +59,7 @@ type AlertmanagerOutput struct {
 }
 
 func (a *AlertmanagerOutput) Init(config map[string]interface{}) error {
+	rand.Seed(time.Now().UnixNano())
 	configData, err := yaml.Marshal(config)
 	if err != nil {
 		return errors.Wrap(err, "alertmanager output encode config")
@@ -116,8 +118,16 @@ func (a *AlertmanagerOutput) schedule() {
 			break
 
 		case metrics := <-a.taskChan:
-			err := a.sendAlarm(metrics)
-			log.WithError(err).Errorf("send alarm got error: %v", err)
+			var err error
+			for i := 0; i < a.config.RetryTimes; i++ {
+				err = a.sendAlarm(metrics)
+				if err != nil {
+					log.WithError(err).Errorf("send alarm got error: %v", err)
+					time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
+				} else {
+					break
+				}
+			}
 		}
 	}
 }
