@@ -112,6 +112,9 @@ type processQueue struct {
 }
 
 func (p *processQueue) getQueueLen() int {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
 	return len(p.queue)
 }
 
@@ -119,7 +122,7 @@ func (p *processQueue) getHead() *logFileInfo {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	if p.getQueueLen() == 0 {
+	if len(p.queue) == 0 {
 		return nil
 	}
 
@@ -130,18 +133,19 @@ func (p *processQueue) getTail() *logFileInfo {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	if p.getQueueLen() == 0 {
+	qLen := len(p.queue)
+	if qLen == 0 {
 		return nil
 	}
 
-	return p.queue[p.getQueueLen()-1]
+	return p.queue[qLen-1]
 }
 
 func (p *processQueue) popHead() {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	if p.getQueueLen() == 0 {
+	if len(p.queue) == 0 {
 		return
 	}
 
@@ -159,11 +163,12 @@ func (p *processQueue) setRenameTrueExceptTail() {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	if p.getQueueLen() == 0 {
+	qLen := len(p.queue)
+	if qLen == 0 {
 		return
 	}
 
-	for i := 0; i < p.getQueueLen()-1; i++ {
+	for i := 0; i < qLen-1; i++ {
 		p.queue[i].isRenamed = true
 	}
 }
@@ -172,7 +177,7 @@ func (p *processQueue) setHeadIsRenameTrue() {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	if p.getQueueLen() == 0 {
+	if len(p.queue) == 0 {
 		return
 	}
 
@@ -183,7 +188,7 @@ func (p *processQueue) getHeadIsRenamed() bool {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	if p.getQueueLen() == 0 {
+	if len(p.queue) == 0 {
 		return false
 	}
 
