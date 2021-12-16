@@ -10,15 +10,23 @@
 // MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-package outputs
+//go:build linux
+// +build linux
+
+package log
 
 import (
-	"github.com/oceanbase/obagent/plugins"
-	"github.com/oceanbase/obagent/plugins/outputs/prometheus"
+	"os"
+	"syscall"
+	"time"
 )
 
-func init() {
-	plugins.GetOutputManager().Register("alertmanagerOutput", func() plugins.Output {
-		return &prometheus.AlertmanagerOutput{}
-	})
+func toFileInfoEx(info os.FileInfo) *FileInfoEx {
+	sysInfo, _ := info.Sys().(*syscall.Stat_t)
+	return &FileInfoEx{
+		FileInfo:   info,
+		fileId:     sysInfo.Ino,
+		devId:      sysInfo.Dev,
+		createTime: time.Unix(sysInfo.Ctim.Unix()),
+	}
 }
