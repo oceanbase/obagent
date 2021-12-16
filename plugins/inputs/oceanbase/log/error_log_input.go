@@ -79,13 +79,13 @@ type Config struct {
 }
 
 type ErrorLogInput struct {
-	config                   *Config
-	logAnalyzer              ILogAnalyzer
-	logProcessQueue          map[ServiceType]*processQueue
-	ctx                      context.Context
-	cancel                   context.CancelFunc
-	tbackgroundTaskWaitGroup sync.WaitGroup
-	metricBufferChan         chan []metric.Metric
+	config                  *Config
+	logAnalyzer             ILogAnalyzer
+	logProcessQueue         map[ServiceType]*processQueue
+	ctx                     context.Context
+	cancel                  context.CancelFunc
+	backgroundTaskWaitGroup sync.WaitGroup
+	metricBufferChan        chan []metric.Metric
 }
 
 func (e *ErrorLogInput) SampleConfig() string {
