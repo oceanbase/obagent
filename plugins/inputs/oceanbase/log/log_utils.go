@@ -35,11 +35,6 @@ type LogConfig struct {
 	LogFileName string `yaml:"logFileName"`
 }
 
-type reportedError struct {
-	ErrorCode  int
-	ReportedAt time.Time
-}
-
 type ILogAnalyzer interface {
 	isErrLog(logLine string) bool
 	getErrCode(logLine string) (int, error)
