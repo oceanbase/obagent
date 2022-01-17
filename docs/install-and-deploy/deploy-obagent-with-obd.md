@@ -24,11 +24,11 @@ obagent:
 
 > **注意**：`servers` 字段必须与 oceanbase-ce 的 `servers` 字段一致。
 
-详细信息，参考 [配置文件](https://github.com/oceanbase/obdeploy/blob/master/example/obagent/distributed-with-obproxy-and-obagent-example.yaml)。
+详细信息，请参考 [配置文件](https://github.com/oceanbase/obdeploy/blob/master/example/obagent/distributed-with-obproxy-and-obagent-example.yaml)。
 
 ## 单独部署 OBAgent
 
-OBD 不支持为已部署的集群添加新的组件。如果您希望为要已部署的集群配置 OBAgent，您需要单独部署 OBAgent。要单独部署 OBAgent，您需要准备 OBAgent 的配置文件。请确保配置文件中的以下字段与 OceanBase 数据库相同：
+OBD 不支持为已部署的集群添加新的组件。如果您希望为要已部署的集群配置 OBAgent，您需要单独部署 OBAgent。若要单独部署 OBAgent，您需要准备 OBAgent 的配置文件。请确保配置文件中的以下字段与 OceanBase 数据库相同：
 
 ```yaml
 obagent:
@@ -60,7 +60,7 @@ obagent:
     # Monitor status for OceanBase Database.  Active is to enable. Inactive is to disable. The default value is active. When you deploy an cluster automatically, OBD decides whether to enable this parameter based on depends.
 ```
 
-更多信息，参考 [OBAgent 配置文件](https://github.com/oceanbase/obdeploy/blob/master/example/obagent/obagent-only-example.yaml
+更多信息，请参考 [OBAgent 配置文件](https://github.com/oceanbase/obdeploy/blob/master/example/obagent/obagent-only-example.yaml
 )。
 
 ## 启动 OBAgent
@@ -74,13 +74,13 @@ obd cluster deploy <deploy name> [-c <yaml path>] [-f] [-U] [-A]
 obd cluster start <deploy name> [flags]
 ```
 
-更多信息，参考 [OBD 使用文档](https://github.com/oceanbase/obdeploy/blob/master/README-CN.md#obd-cluster-deploy)。
+更多信息，请参考 [OBD 使用文档](https://github.com/oceanbase/obdeploy/blob/master/README-CN.md#obd-cluster-deploy)。
 
 ## （可选）启动 Prometheus
 
 > 说明：您需要安装 Prometheus。
 
-运行以下命令，启动 Prometheus, obagent 中的配置文件模版 obd 已经进行了替换，可以复制该配置文件到部署 Prometheus 的主机，然后直接使用该配置文件用如下命令启动 prometheus ：
+OBD 会替换 OBAgent 配置文件模版中的变量，可以复制该配置文件（prometheus.yaml）到部署 Prometheus 的主机，然后执行如下命令使用 prometheus.yaml 文件启动 Prometheus：
 
 ```bash
 ./prometheus --config.file=./prometheus.yaml
@@ -90,7 +90,7 @@ obd cluster start <deploy name> [flags]
 
 - 下载并解压 Prometheus Alertmanager。
 - 启动 Prometheus Alertmanager。
-- 配置 Prometheus Alertmanager。更多信息，参考 [Prometheus 文档](https://www.prometheus.io/docs/alerting/latest/configuration/)。
+- 配置 Prometheus Alertmanager。更多信息，请参考 [Prometheus 文档](https://www.prometheus.io/docs/alerting/latest/configuration/)。
 
 OBAgent 提供默认的报警项，配置文件位于 `conf/prometheus_config/rules`。其中，`host_rules.yaml` 存储机器报警项，`ob_rules.yaml` 存储 OceanBase 数据库报警项。如果默认报警项不能满足您的需求，按照以下方式自定义报警项：
 
@@ -117,10 +117,10 @@ groups:
     ```bash
     ./bin/grafana-server
     ```
-- 登陆 grafana 并且修改密码，第一次登陆默认账号密码都是 admin。
+- 登陆 grafana 并且修改密码，第一次登陆默认账号和密码都是 admin。
 - 配置 prometheus 为数据源, 添加数据源的方式参考 [grafana 文档](https://grafana.com/docs/grafana/v7.5/datasources/add-a-data-source/)。
-- 导入 dashboard, 针对 OB 和主机指标的配置已经发布到grafana，id 分别为 15215, 15216, 导入 dashboard 的方式参考 [grafana 文档](https://grafana.com/docs/grafana/v7.5/dashboards/export-import/)。
+- 导入 dashboard, 针对 OB 和主机指标的配置已经发布到grafana，id 分别为 15215, 15216, 导入 dashboard 的方式请参考 [grafana 文档](https://grafana.com/docs/grafana/v7.5/dashboards/export-import/)。
 
 ## （可选）更新 KV 配置
 
-要更新 KV 配置，请使用 `obd cluster edit-config`。详细信息，参考 [OBD 使用文档](https://github.com/oceanbase/obdeploy/blob/master/README-CN.md#obd-cluster-edit-config)。
+要更新 KV 配置，请使用 `obd cluster edit-config`。详细信息，请参考 [OBD 使用文档](https://github.com/oceanbase/obdeploy/blob/master/README-CN.md#obd-cluster-edit-config)。
