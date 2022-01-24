@@ -23,6 +23,7 @@ import (
 	"github.com/oceanbase/obagent/api/route"
 	"github.com/oceanbase/obagent/api/web"
 	"github.com/oceanbase/obagent/config"
+	"github.com/oceanbase/obagent/utils"
 )
 
 var monitorAgentServer *MonitorAgentServer
@@ -38,8 +39,8 @@ type MonitorAgentServer struct {
 	Server *web.HttpServer
 	// server of pprof
 	AdminServer *web.HttpServer
-	// two servers concurrent waitGroup
-	wg *sync.WaitGroup
+	// server status map
+	serverStatusMap sync.Map
 }
 
 // NewMonitorAgentServer init monagent server: init configs and logger, register routers
@@ -60,7 +61,6 @@ func NewMonitorAgentServer(conf *config.MonitorAgentConfig) *MonitorAgentServer 
 			Server:          &http.Server{},
 			Address:         conf.Server.AdminAddress,
 		},
-		wg: &sync.WaitGroup{},
 	}
 	monitorAgentServer = monagentServer
 	return monitorAgentServer
@@ -68,21 +68,32 @@ func NewMonitorAgentServer(conf *config.MonitorAgentConfig) *MonitorAgentServer 
 
 // Run start mongagent servers: admin server, monitor server
 func (server *MonitorAgentServer) Run() error {
-	server.wg.Add(1)
+	// check port available before start server
 	go func() {
-		defer server.wg.Done()
+		server.serverStatusMap.Store("adminServer", false)
 		ctx, cancel := context.WithCancel(context.Background())
 		server.AdminServer.Cancel = cancel
 		server.AdminServer.Run(ctx)
 	}()
-	server.wg.Add(1)
 	go func() {
-		defer server.wg.Done()
+		server.serverStatusMap.Store("server", false)
 		ctx, cancel := context.WithCancel(context.Background())
 		server.Server.Cancel = cancel
 		server.Server.Run(ctx)
 	}()
-	server.wg.Wait()
+
+	for {
+		adminServerStatus, _ := server.serverStatusMap.LoadOrStore("adminServer", true)
+		serverStatus, _ := server.serverStatusMap.LoadOrStore("server", true)
+		adminServerOk, convertAdminServerOk := utils.ConvertToBool(adminServerStatus)
+		serverOk, convertServerOk := utils.ConvertToBool(serverStatus)
+		if !(convertAdminServerOk && convertServerOk) {
+			return errors.New("start monagent server failed, adminSer")
+		}
+		if !(adminServerOk && serverOk) {
+			return errors.New("start monagent server failed, adminSer")
+		}
+	}
 	return nil
 }
 
