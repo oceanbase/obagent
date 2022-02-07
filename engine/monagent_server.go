@@ -16,13 +16,16 @@ import (
 	"context"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/oceanbase/obagent/api/route"
 	"github.com/oceanbase/obagent/api/web"
 	"github.com/oceanbase/obagent/config"
+	"github.com/oceanbase/obagent/utils"
 )
 
 var monitorAgentServer *MonitorAgentServer
@@ -38,8 +41,8 @@ type MonitorAgentServer struct {
 	Server *web.HttpServer
 	// server of pprof
 	AdminServer *web.HttpServer
-	// two servers concurrent waitGroup
-	wg *sync.WaitGroup
+	// server status map
+	serverStatusMap sync.Map
 }
 
 // NewMonitorAgentServer init monagent server: init configs and logger, register routers
@@ -60,7 +63,6 @@ func NewMonitorAgentServer(conf *config.MonitorAgentConfig) *MonitorAgentServer 
 			Server:          &http.Server{},
 			Address:         conf.Server.AdminAddress,
 		},
-		wg: &sync.WaitGroup{},
 	}
 	monitorAgentServer = monagentServer
 	return monitorAgentServer
@@ -68,21 +70,37 @@ func NewMonitorAgentServer(conf *config.MonitorAgentConfig) *MonitorAgentServer 
 
 // Run start mongagent servers: admin server, monitor server
 func (server *MonitorAgentServer) Run() error {
-	server.wg.Add(1)
+	// check port available before start server
 	go func() {
-		defer server.wg.Done()
+		defer server.serverStatusMap.Store("adminServer", false)
 		ctx, cancel := context.WithCancel(context.Background())
 		server.AdminServer.Cancel = cancel
 		server.AdminServer.Run(ctx)
+		log.Info("start admin server")
 	}()
-	server.wg.Add(1)
 	go func() {
-		defer server.wg.Done()
+		defer server.serverStatusMap.Store("server", false)
 		ctx, cancel := context.WithCancel(context.Background())
 		server.Server.Cancel = cancel
 		server.Server.Run(ctx)
+		log.Info("start server")
 	}()
-	server.wg.Wait()
+
+	for {
+		adminServerStatus, _ := server.serverStatusMap.LoadOrStore("adminServer", true)
+		serverStatus, _ := server.serverStatusMap.LoadOrStore("server", true)
+		adminServerOk, convertAdminServerOk := utils.ConvertToBool(adminServerStatus)
+		serverOk, convertServerOk := utils.ConvertToBool(serverStatus)
+		if !(convertAdminServerOk && convertServerOk) {
+			return errors.New("check monagent server status failed")
+		}
+		if !(adminServerOk && serverOk) {
+			log.Infof("server status ok: %v", serverOk)
+			log.Infof("admin server status ok: %v", adminServerOk)
+			return errors.New("start monagent server failed")
+		}
+		time.Sleep(time.Second * 1)
+	}
 	return nil
 }
 
