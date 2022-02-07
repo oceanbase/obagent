@@ -16,6 +16,7 @@ import (
 	"context"
 	"net/http"
 	"sync"
+    "time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
@@ -93,6 +94,7 @@ func (server *MonitorAgentServer) Run() error {
 		if !(adminServerOk && serverOk) {
 			return errors.New("start monagent server failed, adminSer")
 		}
+        time.Sleep(time.Second * 10)
 	}
 	return nil
 }
