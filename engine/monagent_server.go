@@ -16,10 +16,11 @@ import (
 	"context"
 	"net/http"
 	"sync"
-    "time"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/oceanbase/obagent/api/route"
 	"github.com/oceanbase/obagent/api/web"
@@ -71,16 +72,18 @@ func NewMonitorAgentServer(conf *config.MonitorAgentConfig) *MonitorAgentServer 
 func (server *MonitorAgentServer) Run() error {
 	// check port available before start server
 	go func() {
-		server.serverStatusMap.Store("adminServer", false)
+		defer server.serverStatusMap.Store("adminServer", false)
 		ctx, cancel := context.WithCancel(context.Background())
 		server.AdminServer.Cancel = cancel
 		server.AdminServer.Run(ctx)
+		log.Info("start admin server")
 	}()
 	go func() {
-		server.serverStatusMap.Store("server", false)
+		defer server.serverStatusMap.Store("server", false)
 		ctx, cancel := context.WithCancel(context.Background())
 		server.Server.Cancel = cancel
 		server.Server.Run(ctx)
+		log.Info("start server")
 	}()
 
 	for {
@@ -89,12 +92,14 @@ func (server *MonitorAgentServer) Run() error {
 		adminServerOk, convertAdminServerOk := utils.ConvertToBool(adminServerStatus)
 		serverOk, convertServerOk := utils.ConvertToBool(serverStatus)
 		if !(convertAdminServerOk && convertServerOk) {
-			return errors.New("start monagent server failed, adminSer")
+			return errors.New("check monagent server status failed")
 		}
 		if !(adminServerOk && serverOk) {
-			return errors.New("start monagent server failed, adminSer")
+			log.Infof("server status ok: %v", serverOk)
+			log.Infof("admin server status ok: %v", adminServerOk)
+			return errors.New("start monagent server failed")
 		}
-        time.Sleep(time.Second * 10)
+		time.Sleep(time.Second * 1)
 	}
 	return nil
 }
