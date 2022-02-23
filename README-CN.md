@@ -56,3 +56,4 @@ make build-release
 - [GitHub Issue](https://github.com/oceanbase/obagent/issues)
 - [官方网站](https://open.oceanbase.com/)
 - 知识问答（Coming soon）
+- rehai
