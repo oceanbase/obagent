@@ -1,7 +1,7 @@
 Name: obagent
 Summary: ob agent program
 Group: alipay/oceanbase
-Version: 1.1.0
+Version: 1.1.1
 Release: %(echo $RELEASE)%{?dist}
 URL: http://rpm.corp.taobao.com/find.php?q=obagent
 License: Commercial
