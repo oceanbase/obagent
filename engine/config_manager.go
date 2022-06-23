@@ -163,16 +163,14 @@ func (c *ConfigManager) handleDelEvent(event *configEvent, callbackEvent *config
 
 	_, exist := c.getConfig(event.pipelineModule.Name)
 	if !exist {
-
-		callbackEvent.execStatus = configEventExecFailed
-		callbackEvent.description = fmt.Sprintf("moudle %s config delete failed", event.pipelineModule.Name)
-
-		return errors.Errorf("moudle %s config is not exist", event.pipelineModule.Name)
-	}
-
-	status := c.handleConfigEvent(event, deletePipelineEvent, callbackEvent)
-	if status {
-		c.delConfig(event.pipelineModule.Name)
+		log.Errorf("moudle %s config is not exist", event.pipelineModule.Name)
+		callbackEvent.execStatus = configEventExecSucceed
+		callbackEvent.description = fmt.Sprintf("moudle %s config not exist", event.pipelineModule.Name)
+	} else {
+		status := c.handleConfigEvent(event, deletePipelineEvent, callbackEvent)
+		if status {
+			c.delConfig(event.pipelineModule.Name)
+		}
 	}
 
 	return nil
