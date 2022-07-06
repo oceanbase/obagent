@@ -90,6 +90,14 @@ obInputBasic: &obInputBasic
           metrics:
             wait_total: total_waits
             wait_seconds_total: time_waited
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ tenant_name, response_time / 1000000 as response_time, count, total from __all_virtual_query_response_time join __all_tenant on __all_virtual_query_response_time.tenant_id = __all_tenant.tenant_id
+          name: ob_query_response_time
+          tags:
+            tenant_name: tenant_name
+            le: response_time
+          metrics:
+            count: count
+            total: total
 
 obInputExtra: &obInputExtra
   plugin: mysqlTableInput
