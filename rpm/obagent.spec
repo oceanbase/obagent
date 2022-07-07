@@ -1,30 +1,24 @@
 Name: obagent
 Summary: ob agent program
-Group: alipay/oceanbase
+Group: oceanbase
 Version: 1.1.1
 Release: %(echo $RELEASE)%{?dist}
-URL: http://rpm.corp.taobao.com/find.php?q=obagent
-License: Commercial
+URL: https://github.com/oceanbase/obagent
+License: MulanPSL - 2.0
 BuildArch: x86_64 aarch64
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 %description
 obagent program
 
 %define _prefix /home/admin
 
-%prep
-rm -rf %{_sourcedir}/%{name}
-mkdir -p %_sourcedir/%{name}
-cp -r $OLDPWD/* %_sourcedir/%{name}
-
 %build
 
-cd %_sourcedir/%{name}
+cd $OLDPWD/../
 make build
 
 %install
-cd %_sourcedir/%{name}
+cd $OLDPWD/../
 mkdir -p $RPM_BUILD_ROOT/%{_prefix}/obagent/
 mkdir -p $RPM_BUILD_ROOT/%{_prefix}/obagent/bin
 mkdir -p $RPM_BUILD_ROOT/%{_prefix}/obagent/conf
@@ -50,3 +44,7 @@ cp -r etc/*             $RPM_BUILD_ROOT/%{_prefix}/obagent/conf
 %{_prefix}/obagent/conf/module_config/*.yaml
 %{_prefix}/obagent/conf/prometheus_config/*.yaml
 %{_prefix}/obagent/conf/prometheus_config/rules/*.yaml
+
+%changelog
+* Tue Mar 29 2022 oceanbase
+- obagent
