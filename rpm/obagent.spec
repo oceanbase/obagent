@@ -1,7 +1,7 @@
 Name: obagent
 Summary: ob agent program
 Group: oceanbase
-Version: 1.1.1
+Version: %(echo $VERSION)
 Release: %(echo $RELEASE)%{?dist}
 URL: https://github.com/oceanbase/obagent
 License: MulanPSL - 2.0
