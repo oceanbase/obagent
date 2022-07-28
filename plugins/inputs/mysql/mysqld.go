@@ -14,10 +14,13 @@ package mysql
 
 import (
 	"context"
+	"os"
+	"sync"
 
 	log2 "github.com/go-kit/kit/log/logrus"
 	kitLog "github.com/go-kit/log"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/alecthomas/kingpin.v2"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
@@ -116,6 +119,8 @@ func (m *MysqldExporter) Init(config map[string]interface{}) error {
 		return errors.Wrap(err, "mysqld exporter decode config")
 	}
 
+	commandLineParse()
+
 	m.logger = log2.NewLogrusLogger(log.StandardLogger())
 
 	m.Config = &pluginConfig
@@ -139,6 +144,18 @@ func (m *MysqldExporter) Init(config map[string]interface{}) error {
 	}
 
 	return err
+}
+
+var once sync.Once
+
+func commandLineParse() {
+	once.Do(func() {
+		lastIndex := len(os.Args) - 1
+		copy(os.Args[lastIndex:], os.Args)
+		os.Args = os.Args[lastIndex:]
+
+		kingpin.Parse()
+	})
 }
 
 func (m *MysqldExporter) Collect() ([]metric.Metric, error) {
