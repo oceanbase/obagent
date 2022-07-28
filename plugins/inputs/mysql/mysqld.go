@@ -14,10 +14,13 @@ package mysql
 
 import (
 	"context"
+	"os"
+	"sync"
 
 	log2 "github.com/go-kit/kit/log/logrus"
 	kitLog "github.com/go-kit/log"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/alecthomas/kingpin.v2"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
@@ -38,6 +41,20 @@ const mysqldDescription = `
 var (
 	dsn string
 )
+
+// Scraper version will be validated against MySQL version
+// ignoredVersionScraper: a wrapper which pseudo-downgrades scraper version to make it compatible with Oceanbase
+type ignoredVersionScraper struct {
+	collector.Scraper
+}
+
+func (ignoredVersionScraper) Version() float64 {
+	return 0.0
+}
+
+func ignoreVersion(c collector.Scraper) collector.Scraper {
+	return ignoredVersionScraper{c}
+}
 
 // scrapers lists all possible collection methods and if they should be enabled by default.
 var scrapers = map[collector.Scraper]bool{
@@ -116,6 +133,8 @@ func (m *MysqldExporter) Init(config map[string]interface{}) error {
 		return errors.Wrap(err, "mysqld exporter decode config")
 	}
 
+	commandLineParse()
+
 	m.logger = log2.NewLogrusLogger(log.StandardLogger())
 
 	m.Config = &pluginConfig
@@ -126,7 +145,7 @@ func (m *MysqldExporter) Init(config map[string]interface{}) error {
 	for scraper, enabledByDefault := range scrapers {
 		enabled, found := m.Config.ScraperFlags[scraper.Name()]
 		if (found && enabled) || (!found && enabledByDefault) {
-			m.enabledScrapers = append(m.enabledScrapers, scraper)
+			m.enabledScrapers = append(m.enabledScrapers, ignoreVersion(scraper))
 		}
 	}
 
@@ -141,6 +160,18 @@ func (m *MysqldExporter) Init(config map[string]interface{}) error {
 	return err
 }
 
+var once sync.Once
+
+func commandLineParse() {
+	once.Do(func() {
+		lastIndex := len(os.Args) - 1
+		copy(os.Args[lastIndex:], os.Args)
+		os.Args = os.Args[lastIndex:]
+
+		kingpin.Parse()
+	})
+}
+
 func (m *MysqldExporter) Collect() ([]metric.Metric, error) {
 	// TODO parse metric families
 
@@ -148,7 +179,7 @@ func (m *MysqldExporter) Collect() ([]metric.Metric, error) {
 
 	metricFamilies, err := m.registry.Gather()
 	if err != nil {
-		return nil, errors.Wrap(err, "node exporter registry gather")
+		return nil, errors.Wrap(err, "mysql exporter registry gather")
 	}
 	for _, metricFamily := range metricFamilies {
 		metricsFromMetricFamily := metric.ParseFromMetricFamily(metricFamily)
