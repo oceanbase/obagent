@@ -42,6 +42,20 @@ var (
 	dsn string
 )
 
+// Scraper version will be validated against MySQL version
+// ignoredVersionScraper: a wrapper which pseudo-downgrades scraper version to make it compatible with Oceanbase
+type ignoredVersionScraper struct {
+	collector.Scraper
+}
+
+func (ignoredVersionScraper) Version() float64 {
+	return 0.0
+}
+
+func ignoreVersion(c collector.Scraper) collector.Scraper {
+	return ignoredVersionScraper{c}
+}
+
 // scrapers lists all possible collection methods and if they should be enabled by default.
 var scrapers = map[collector.Scraper]bool{
 	collector.ScrapeGlobalStatus{}:                        true,
@@ -131,7 +145,7 @@ func (m *MysqldExporter) Init(config map[string]interface{}) error {
 	for scraper, enabledByDefault := range scrapers {
 		enabled, found := m.Config.ScraperFlags[scraper.Name()]
 		if (found && enabled) || (!found && enabledByDefault) {
-			m.enabledScrapers = append(m.enabledScrapers, scraper)
+			m.enabledScrapers = append(m.enabledScrapers, ignoreVersion(scraper))
 		}
 	}
 
@@ -165,7 +179,7 @@ func (m *MysqldExporter) Collect() ([]metric.Metric, error) {
 
 	metricFamilies, err := m.registry.Gather()
 	if err != nil {
-		return nil, errors.Wrap(err, "node exporter registry gather")
+		return nil, errors.Wrap(err, "mysql exporter registry gather")
 	}
 	for _, metricFamily := range metricFamilies {
 		metricsFromMetricFamily := metric.ParseFromMetricFamily(metricFamily)
