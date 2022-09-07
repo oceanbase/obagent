@@ -39,7 +39,7 @@ func mergeConfigProperties() {
 		}
 		if property.Value == meta.DefaultValue {
 			if meta.Masked {
-				// 数据需要脱敏，不打印内容
+				// The data needs to be desensitized, and the content will not be printed
 				log.Warnf("config key %s is still set as default value", key)
 			} else {
 				log.Warnf("config key %s is still set as default value:%+v", key, property.DefaultValue)
