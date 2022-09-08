@@ -11,8 +11,11 @@
   http://1.1.1.1:9093
   http://127.0.0.1:9100/metrics
   http://127.0.0.1:9091/metrics/node
+  http://127.0.0.1:9090/metrics/node
   https://mirrors.aliyun.com/goproxy/
   https://facebook.github.io/watchman/
+  https://github.com/oceanbase/obagent
+  https://bixense.com/clicolors/
 --------------------------------------------------------
 # Should use GLOB wildcard to config and analysis the ignored folder
 # The root patch shold start with '/'
