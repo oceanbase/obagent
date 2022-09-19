@@ -14,7 +14,6 @@ package mysql
 
 import (
 	"database/sql"
-	"strings"
 	"sync"
 	"time"
 
@@ -65,7 +64,7 @@ type TableCollectConfig struct {
 	Name                    string            `yaml:"name"`
 	Sql                     string            `yaml:"sql"`
 	Params                  []string          `yaml:"params"`
-	Condition               string            `yaml:"condition"`
+	Conditions              []string          `yaml:"conditions"`
 	TagColumnMap            map[string]string `yaml:"tags"`
 	MetricColumnMap         map[string]string `yaml:"metrics"`
 	ConditionValueColumnMap map[string]string `yaml:"conditionValues"`
@@ -275,9 +274,8 @@ func (t *TableInput) collectData(config *TableCollectConfig) []metric.Metric {
 func (t *TableInput) doCollect(config *TableCollectConfig, metricChan chan metric.Metric, wg *sync.WaitGroup) {
 	defer wg.Done()
 	currentTime := time.Now()
-	if len(config.Condition) > 0 {
-		conditionArray := strings.Split(config.Condition, " ")
-		for _, condition := range conditionArray {
+	if len(config.Conditions) > 0 {
+		for _, condition := range config.Conditions {
 
 			value, found := t.ConditionValueMap.Load(condition)
 			if !found {
