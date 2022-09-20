@@ -64,7 +64,7 @@ type TableCollectConfig struct {
 	Name                    string            `yaml:"name"`
 	Sql                     string            `yaml:"sql"`
 	Params                  []string          `yaml:"params"`
-	Condition               string            `yaml:"condition"`
+	Conditions              []string          `yaml:"conditions"`
 	TagColumnMap            map[string]string `yaml:"tags"`
 	MetricColumnMap         map[string]string `yaml:"metrics"`
 	ConditionValueColumnMap map[string]string `yaml:"conditionValues"`
@@ -142,16 +142,6 @@ func (t *TableInput) Init(config map[string]interface{}) error {
 	t.Config = &pluginConfig
 
 	log.Info("table input init with config", t.Config)
-
-	nameMap := make(map[string]bool)
-	for _, collectConfig := range pluginConfig.CollectConfigs {
-		_, exists := nameMap[collectConfig.Name]
-		if exists {
-			return errors.Errorf("collect config %s already exists", collectConfig.Name)
-		} else {
-			nameMap[collectConfig.Name] = true
-		}
-	}
 
 	err = t.initDbConnection()
 	if err != nil {
@@ -284,20 +274,23 @@ func (t *TableInput) collectData(config *TableCollectConfig) []metric.Metric {
 func (t *TableInput) doCollect(config *TableCollectConfig, metricChan chan metric.Metric, wg *sync.WaitGroup) {
 	defer wg.Done()
 	currentTime := time.Now()
-	if len(config.Condition) > 0 {
-		value, found := t.ConditionValueMap.Load(config.Condition)
-		if !found {
-			log.Warn("Condition value not found:", config.Condition)
-			return
-		} else {
-			conditionSatisfied, ok := utils.ConvertToBool(value)
-			if !ok {
-				log.Warn("condition value convert failed")
+	if len(config.Conditions) > 0 {
+		for _, condition := range config.Conditions {
+
+			value, found := t.ConditionValueMap.Load(condition)
+			if !found {
+				log.Warn("Condition value not found:", condition)
 				return
-			}
-			if !conditionSatisfied {
-				log.Warn("condition not satisfied, skip do collect for:", config.Name)
-				return
+			} else {
+				conditionSatisfied, ok := utils.ConvertToBool(value)
+				if !ok {
+					log.Warn("condition value convert failed")
+					return
+				}
+				if !conditionSatisfied {
+					log.Warn("condition not satisfied, skip do collect for:", config.Name)
+					return
+				}
 			}
 		}
 	}

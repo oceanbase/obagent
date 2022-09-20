@@ -11,3 +11,4 @@
 *.dylib
 *.test
 *.out
+bin/*

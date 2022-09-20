@@ -11,8 +11,39 @@ obInputBasic: &obInputBasic
       defaultConditionValues:
         ob_svr_ip: ${monagent.host.ip}
         ob_svr_port: ${monagent.ob.rpc.port}
-        ob_is_rootservice: true
+        ob_is_rootservice: false
+        ob_is_v4: false
+        ob_is_v3: false
       collectConfig:
+
+        - sql: select ob_version() REGEXP '^4' as ob_is_v4
+          name: ob_is_v4
+          conditionValues:
+            ob_is_v4: ob_is_v4
+        - sql: select ob_version() REGEXP '^3' as ob_is_v3
+          name: ob_is_v3
+          conditionValues:
+            ob_is_v3: ob_is_v3
+        - name: ob_role
+          sqlSlowThreshold: 100ms
+          metrics:
+            is_rootserver: with_rootserver
+          conditionValues:
+            ob_is_rootservice: with_rootserver
+          conditions: [ ob_is_v3 ]
+          params: [ ob_svr_ip, ob_svr_port ]
+          sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ with_rootserver from __all_server where svr_ip = ? and svr_port = ?
+
+        - name: ob_role
+          sqlSlowThreshold: 100ms
+          metrics:
+            is_rootserver: with_rootserver
+          conditionValues:
+            ob_is_rootservice: with_rootserver
+          conditions: [ ob_is_v4 ]
+          params: [ ob_svr_ip, ob_svr_port ]
+          sql: select (case when with_rootserver='YES' then 1 else 0 end) as with_rootserver from DBA_OB_SERVERS where svr_ip = ? and svr_port = ?
+
         - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ tenant_name, cache_name, cache_size from __all_virtual_kvcache_info, __all_tenant where __all_tenant.tenant_id = __all_virtual_kvcache_info.tenant_id and svr_ip = ? and svr_port = ?
           params: [ob_svr_ip, ob_svr_port]
           name: ob_cache
@@ -52,7 +83,17 @@ obInputBasic: &obInputBasic
           cacheDataExpire: 120s
         - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) QUERY_TIMEOUT(100000000)  */ tenant_name, count(*)  as cnt from gv$table group by tenant_id
           name: ob_table
-          condition: ob_is_rootservice
+          conditions: [ ob_is_v3, ob_is_rootservice ]
+          tags:
+            tenant_name: tenant_name
+          metrics:
+            num: cnt
+          enableCache: true
+          cacheExpire: 1h
+          cacheDataExpire: 2h
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) QUERY_TIMEOUT(100000000)  */ tenant_name, count(*)  as cnt from CDB_TABLES join __all_tenant on CDB_TABLES.con_id = __all_tenant.tenant_id group by con_id
+          name: ob_table
+          conditions: [ ob_is_v4, ob_is_rootservice ]
           tags:
             tenant_name: tenant_name
           metrics:
@@ -75,8 +116,19 @@ obInputBasic: &obInputBasic
           metrics:
             stat: value
             current_timestamp: current
-        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ tenant_name, mem_used, access_count, hit_count from v$plan_cache_stat join __all_tenant on v$plan_cache_stat.tenant_id = __all_tenant.tenant_id
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ tenant_name, mem_used, access_count, hit_count from v$plan_cache_stat join __all_tenant on v$plan_cache_stat.tenant_id = __all_tenant.tenant_id group by tenant_name
           name: ob_plan_cache
+          conditions: [ ob_is_v3 ]
+          tags:
+            tenant_name: tenant_name
+          metrics:
+            memory_bytes: mem_used
+            access_total: access_count
+            hit_total: hit_count
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ tenant_name, mem_used, access_count, hit_count from V$OB_PLAN_CACHE_STAT join __all_tenant on V$OB_PLAN_CACHE_STAT.tenant_id = __all_tenant.tenant_id group by tenant_name
+          name: ob_plan_cache
+          condition: [ ob_is_v4 ]
+
           tags:
             tenant_name: tenant_name
           metrics:
@@ -114,8 +166,37 @@ obInputExtra: &obInputExtra
       defaultConditionValues:
         ob_svr_ip: ${monagent.host.ip}
         ob_svr_port: ${monagent.ob.rpc.port}
-        ob_is_rootservice: true
+        ob_is_rootservice: false
+        ob_is_v4: false
+        ob_is_v3: false
       collectConfig:
+        - sql: select ob_version() REGEXP '^4' as ob_is_v4
+          name: ob_is_v4
+          conditionValues:
+            ob_is_v4: ob_is_v4
+        - sql: select ob_version() REGEXP '^3' as ob_is_v3
+          name: ob_is_v3
+          conditionValues:
+            ob_is_v3: ob_is_v3
+        - name: ob_role
+          sqlSlowThreshold: 100ms
+          metrics:
+            is_rootserver: with_rootserver
+          conditionValues:
+            ob_is_rootservice: with_rootserver
+          conditions: [ ob_is_v3 ]
+          params: [ ob_svr_ip, ob_svr_port ]
+          sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ with_rootserver from __all_server where svr_ip = ? and svr_port = ?
+
+        - name: ob_role
+          sqlSlowThreshold: 100ms
+          metrics:
+            is_rootserver: with_rootserver
+          conditionValues:
+            ob_is_rootservice: with_rootserver
+          conditions: [ ob_is_v4 ]
+          params: [ ob_svr_ip, ob_svr_port ]
+          sql: select (case when with_rootserver='YES' then 1 else 0 end) as with_rootserver from DBA_OB_SERVERS where svr_ip = ? and svr_port = ?
         - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ count(*) as cnt from v$unit
           name: ob_unit
           metrics:
@@ -150,12 +231,17 @@ obInputExtra: &obInputExtra
         - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ count(1) as cnt from __all_virtual_trans_stat where part_trans_action > 2 and ctx_create_time < date_sub(now(), interval 600 second) and svr_ip = ? and svr_port = ?
           params: [ob_svr_ip, ob_svr_port]
           name: ob_trans
-          condition: ob_is_rootservice
+          conditions: [ ob_is_rootservice ]
           metrics:
             expire_num: cnt
         - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) QUERY_TIMEOUT(100000000)  */ count(*) as cnt from gv$table where table_type in (5) and index_status in (5, 6)
           name: ob_index
-          condition: ob_is_rootservice
+          conditions: [ ob_is_v3, ob_is_rootservice]
+          metrics:
+            error_num: cnt
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) QUERY_TIMEOUT(100000000)  */ count(*) as cnt from CDB_INDEXES where table_type in (5) and status in (5, 6)
+          name: ob_index
+          conditions: [ob_is_v4, ob_is_rootservice ]
           metrics:
             error_num: cnt
         - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ __all_tenant.tenant_name,  active, total, freeze_trigger, freeze_cnt from gv$memstore, __all_tenant  where gv$memstore.tenant_id = __all_tenant.tenant_id and ip = ? and port = ?
@@ -189,12 +275,13 @@ obInputExtra: &obInputExtra
             min_iops: min_iops
             max_disk_size_bytes: max_disk_size
             max_session_num: max_session_num
-        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ tenant_name, tenant_id, name, gets, misses, sleeps, immediate_gets, immediate_misses, spin_gets, wait_time / 1000000 as wait_time from v$latch, __all_tenant where __all_tenant.tenant_id = v$latch.con_id
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ tenant_name, tenant_id, `latch#` as latch_no, name, gets, misses, sleeps, immediate_gets, immediate_misses, spin_gets, wait_time / 1000000 as wait_time from v$latch, __all_tenant where __all_tenant.tenant_id = v$latch.con_id
           name: ob_latch
           tags:
             tenant_name: tenant_name
             tenant_id: tenant_id
             name: name
+            latch_no: latch_no
           metrics:
             get_total: gets
             miss_total: misses
