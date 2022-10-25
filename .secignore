@@ -15,6 +15,7 @@
   https://mirrors.aliyun.com/goproxy/
   https://facebook.github.io/watchman/
   https://github.com/oceanbase/obagent
+  https://github.com/krallin/tini/*
   https://bixense.com/clicolors/
 --------------------------------------------------------
 # Should use GLOB wildcard to config and analysis the ignored folder
