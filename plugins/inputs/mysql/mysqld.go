@@ -148,7 +148,7 @@ func (m *MysqldExporter) Collect() ([]metric.Metric, error) {
 
 	metricFamilies, err := m.registry.Gather()
 	if err != nil {
-		return nil, errors.Wrap(err, "node exporter registry gather")
+		return nil, errors.Wrap(err, "mysql exporter registry gather")
 	}
 	for _, metricFamily := range metricFamilies {
 		metricsFromMetricFamily := metric.ParseFromMetricFamily(metricFamily)

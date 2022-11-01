@@ -13,6 +13,7 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/gwatts/gin-adapter v0.0.0-20170508204228-c44433c485ad
+	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/huandu/go-clone v1.3.0
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.12

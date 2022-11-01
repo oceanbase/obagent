@@ -130,7 +130,7 @@ func TestCollectConditionNotSatisfied(t *testing.T) {
         k1: 1
       collectConfig:
         - sql: select t1, t2, m1, m2 from test_metric
-          condition: k0
+          conditions: [k0]
           name: test
           tags:
             tag1: t1
@@ -161,7 +161,7 @@ func TestCollectConditionNotFound(t *testing.T) {
         k1: 1
       collectConfig:
         - sql: select t1, t2, m1, m2 from test_metric
-          condition: k2
+          conditions: [k2]
           name: test
           tags:
             tag1: t1
@@ -193,7 +193,7 @@ func TestCollectConditionNotBool(t *testing.T) {
         k2: x
       collectConfig:
         - sql: select t1, t2, m1, m2 from test_metric
-          condition: k2
+          conditions: [k2]
           name: test
           tags:
             tag1: t1
