@@ -62,6 +62,7 @@ obInputBasic: &obInputBasic
             value: value
         - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) QUERY_TIMEOUT(100000000) */ tenant_name, 1 as role, case when cnt is null then 0 else cnt end as cnt from (select __all_tenant.tenant_name, t1.cnt from __all_tenant left join (select tenant_id, count(*) as cnt from __all_virtual_partition_info where svr_ip = ? and svr_port = ? group by tenant_id) t1 on __all_tenant.tenant_id = t1.tenant_id) t2
           params: [ob_svr_ip, ob_svr_port]
+          conditions: [ ob_is_v3 ]
           name: ob_partition
           tags:
             tenant_name: tenant_name
@@ -199,6 +200,12 @@ obInputExtra: &obInputExtra
           sql: select (case when with_rootserver='YES' then 1 else 0 end) as with_rootserver from DBA_OB_SERVERS where svr_ip = ? and svr_port = ?
         - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ count(*) as cnt from v$unit
           name: ob_unit
+          conditions: [ ob_is_v3 ]
+          metrics:
+            num: cnt
+        - sql: select /*+ MONITOR_AGENT */ count(*) as cnt from V$OB_UNITS
+          name: ob_unit
+          conditions: [ ob_is_v4 ]
           metrics:
             num: cnt
         - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ total_size, free_size from __all_virtual_disk_stat where svr_ip = ? and svr_port = ?
@@ -213,6 +220,7 @@ obInputExtra: &obInputExtra
         - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ cpu_total,cpu_assigned,mem_total,mem_assigned,disk_total,disk_assigned,unit_num,migrating_unit_num,cpu_assigned_percent, mem_assigned_percent, disk_assigned_percent from __all_virtual_server_stat where svr_ip = ? and svr_port = ?
           params: [ob_svr_ip, ob_svr_port]
           name: ob_server_resource
+          conditions: [ ob_is_v3 ]
           metrics:
             cpu: cpu_total
             cpu_assigned: cpu_assigned
@@ -225,6 +233,21 @@ obInputExtra: &obInputExtra
             cpu_assigned_percent: cpu_assigned_percent
             memory_assigned_percent: mem_assigned_percent
             disk_assigned_percent: disk_assigned_percent
+          enableCache: true
+          cacheExpire: 60s
+          cacheDataExpire: 120s
+        - sql: select /* MONITOR_AGENT */ cpu_capacity_max as cpu_total,cpu_assigned_max as cpu_assigned,mem_capacity as mem_total,mem_assigned as mem_assigned,data_disk_capacity as disk_total, (cpu_assigned_max / cpu_capacity_max) as cpu_assigned_percent, (mem_assigned / mem_capacity) as mem_assigned_percent from GV$OB_SERVERS where svr_ip = ? and svr_port = ?
+          params: [ob_svr_ip, ob_svr_port]
+          name: ob_server_resource
+          conditions: [ ob_is_v4 ]
+          metrics:
+            cpu: cpu_total
+            cpu_assigned: cpu_assigned
+            memory_bytes: mem_total
+            memory_assigned_bytes: mem_assigned
+            disk_bytes: disk_total
+            cpu_assigned_percent: cpu_assigned_percent
+            memory_assigned_percent: mem_assigned_percent
           enableCache: true
           cacheExpire: 60s
           cacheDataExpire: 120s
@@ -247,6 +270,18 @@ obInputExtra: &obInputExtra
         - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ __all_tenant.tenant_name,  active, total, freeze_trigger, freeze_cnt from gv$memstore, __all_tenant  where gv$memstore.tenant_id = __all_tenant.tenant_id and ip = ? and port = ?
           params: [ob_svr_ip, ob_svr_port]
           name: ob_memstore
+          conditions: [ ob_is_v3 ]
+          tags:
+            tenant_name: tenant_name
+          metrics:
+            active_bytes: active
+            total_bytes: total
+            freeze_trigger_bytes: freeze_trigger
+            freeze_times: freeze_cnt
+        - sql: select /* MONITOR_AGENT */ __all_tenant.tenant_name, active_span as active, memstore_used as total, freeze_trigger, freeze_cnt from GV$OB_MEMSTORE, __all_tenant where GV$OB_MEMSTORE.tenant_id = __all_tenant.tenant_id and svr_ip = ? and svr_port = ?
+          params: [ob_svr_ip, ob_svr_port]
+          name: ob_memstore
+          conditions: [ ob_is_v4 ]
           tags:
             tenant_name: tenant_name
           metrics:
@@ -263,6 +298,7 @@ obInputExtra: &obInputExtra
         - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ tenant_name, __all_unit_config.name, max_cpu, min_cpu, max_memory, min_memory, max_iops, min_iops, max_disk_size, max_session_num from __all_tenant, __all_resource_pool, __all_unit_config, __all_unit  where __all_tenant.tenant_id = __all_resource_pool.tenant_id and __all_resource_pool.unit_config_id = __all_unit_config.unit_config_id and __all_unit.resource_pool_id = __all_resource_pool.resource_pool_id and __all_unit.svr_ip = ? and __all_unit.svr_port = ?
           params: [ob_svr_ip, ob_svr_port]
           name: ob_unit_config
+          conditions: [ ob_is_v3 ]
           tags:
             tenant_name: tenant_name
             unit_config_name: name
@@ -275,6 +311,22 @@ obInputExtra: &obInputExtra
             min_iops: min_iops
             max_disk_size_bytes: max_disk_size
             max_session_num: max_session_num
+        - sql: select /* MONITOR_AGENT */ __all_tenant.tenant_name, DBA_OB_UNIT_CONFIGS.name, DBA_OB_UNIT_CONFIGS.max_cpu, DBA_OB_UNIT_CONFIGS.min_cpu, DBA_OB_UNIT_CONFIGS.memory_size as max_memory, DBA_OB_UNIT_CONFIGS.max_iops, DBA_OB_UNIT_CONFIGS.min_iops from __all_tenant, DBA_OB_RESOURCE_POOLS, DBA_OB_UNIT_CONFIGS, DBA_OB_UNITS  where DBA_OB_RESOURCE_POOLS.tenant_id = __all_tenant.tenant_id and DBA_OB_RESOURCE_POOLS.unit_config_id = DBA_OB_UNIT_CONFIGS.unit_config_id and DBA_OB_UNITS.resource_pool_id = DBA_OB_RESOURCE_POOLS.resource_pool_id and DBA_OB_UNITS.svr_ip = ? and DBA_OB_UNITS.svr_port = ?
+          params: [ob_svr_ip, ob_svr_port]
+          name: ob_unit_config
+          conditions: [ ob_is_v4 ]
+          tags:
+            tenant_name: tenant_name
+            unit_config_name: name
+          metrics:
+            max_cpu: max_cpu
+            min_cpu: min_cpu
+            max_memory_bytes: max_memory
+            min_memory_bytes: min_memory
+            max_iops: max_iops
+            min_iops: min_iops
+          enableCache: true
+          cacheExpire: 60s
         - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ tenant_name, tenant_id, `latch#` as latch_no, name, gets, misses, sleeps, immediate_gets, immediate_misses, spin_gets, wait_time / 1000000 as wait_time from v$latch, __all_tenant where __all_tenant.tenant_id = v$latch.con_id
           name: ob_latch
           tags:
