@@ -1,30 +1,30 @@
 #!/bin/bash
 ### 关闭这个功能
-http_basic_auth_user='admin'
-http_basic_auth_password='root'
-pprof_basic_auth_user='admin'
-pprof_basic_auth_password='root'
+http_basic_auth_user=${HTTP_BASIC_AUTH_USER:-'admin'}
+http_basic_auth_password=${HTTP_BASIC_AUTH_PASSWORD:-'root'}
+pprof_basic_auth_user=${PPROF_BASIC_AUTH_USER:-'admin'}
+pprof_basic_auth_password=${PPROF_BASIC_AUTH_PASSWORD:-'root'}
 
 
-monitor_user=$monitor_user
-monitor_password=$monitor_password
+monitor_user=$MONITOR_USER
+monitor_password=$MONITOR_PASSWORD
 
-sql_port='2881'
-rpc_port='2882'
+sql_port=${SQL_PORT:-'2881'}
+rpc_port=${RPC_PORT:-'2882'}
 
-ob_install_path='ori_path'
-host_ip=$host_ip
+ob_install_path=${OB_INSTALL_PATH:-'ori_path'}
+host_ip=$HOST_IP
 
-cluster_name=$cluster_name
-cluster_id=$cluster_id
+cluster_name=$CLUSTER_NAME
+cluster_id=$CLUSTER_ID
 
-zone_name=$zone_name
-ob_monitor_status='active'
-ob_log_monitor_status='inactive'
-host_monitor_status='active'
-alertmanager_address='temp'
-disable_http_basic_auth='true'
-disable_pprof_basic_auth='true'
+zone_name=$ZONE_NAME
+ob_monitor_status=${OB_MONITOR_STATUS:-'active'}
+ob_log_monitor_status=${OB_LOG_MONITOR_STATUS:-'inactive'}
+host_monitor_status=${HOST_MONITOR_STATUS:-'active'}
+alertmanager_address=${ALERTMANAGER_ADDRESS:-'temp'}
+disable_http_basic_auth=${DISABLE_HTTP_BASIC_AUTH:-'true'}
+disable_pprof_basic_auth=${DISABLE_PPROF_BASIC_AUTH:-'true'}
 
 ### 配置 monagent_basic_auth.yaml
 sed -i "s/{http_basic_auth_user}/${http_basic_auth_user}/g" ./conf/config_properties/monagent_basic_auth.yaml
