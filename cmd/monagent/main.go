@@ -17,6 +17,8 @@ import (
 	"os"
 	"time"
 
+	"runtime/debug"
+
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -48,6 +50,8 @@ var (
 )
 
 func init() {
+	debug.SetGCPercent(config.GCPercent)
+
 	// monagent server config file
 	monagentCommand.PersistentFlags().StringP("config", "c", "conf/monagent.yaml", "config file")
 	// plugins config use dir, all yaml files in the dir will be used as plugin config file
