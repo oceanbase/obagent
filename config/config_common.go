@@ -28,6 +28,7 @@ type Process = string
 
 const (
 	ProcessMonitorAgent Process = "monagent"
+	GCPercent           int     = 500
 )
 
 type InstallConfig struct {
