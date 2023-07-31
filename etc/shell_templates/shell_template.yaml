@@ -1,0 +1,84 @@
+commandGroups:
+
+  - name: package.query
+    user: admin
+    timeout: 5s
+    commands:
+      - case:
+          os: debian
+        cmd: dpkg -l | awk '{print $2"-"$3"."$4}' | sed 's/amd64/x86_64/g;s/arm64/aarch64/g' | grep -e '^${PACKAGE_NAME}'
+      - default:
+        cmd: rpm -q ${PACKAGE_NAME}
+    params:
+      - name: PACKAGE_NAME
+        validate: PACKAGE_NAME
+
+  - name: package.install
+    user: root
+    timeout: 10m
+    commands:
+      - case:
+          os: debian
+          arch: x86_64
+        cmd: alien -k -i ${PACKAGE_FILE}
+      - case:
+          os: debian
+          arch: aarch64
+        cmd: alien -k -i ${PACKAGE_FILE} --target=arm64
+      - default:
+        cmd: rpm -Uvh --oldpackage ${PACKAGE_FILE}
+    params:
+      - name: PACKAGE_FILE
+        validate: PATH
+
+  - name: package.install.relocate
+    user: root
+    timeout: 10m
+    commands:
+      # debian 系统暂不支持自定义安装路径，只能安装到原路径
+      - case:
+          os: debian
+          arch: x86_64
+        cmd: alien -k -i ${PACKAGE_FILE}
+      - case:
+          os: debian
+          arch: aarch64
+        cmd: alien -k -i ${PACKAGE_FILE} --target=arm64
+      - default:
+        cmd: rpm -Uvh --oldpackage --prefix=${INSTALL_PATH} ${PACKAGE_FILE}
+    params:
+      - name: INSTALL_PATH
+        validate: PATH
+      - name: PACKAGE_FILE
+        validate: PATH
+
+  - name: package.install.downgrade
+    user: root
+    timeout: 10m
+    commands:
+      - case:
+          os: debian
+          arch: x86_64
+        cmd: alien -k -i ${PACKAGE_FILE}
+      - case:
+          os: debian
+          arch: aarch64
+        cmd: alien -k -i ${PACKAGE_FILE} --target=arm64
+      - default:
+        cmd: rpm -Uvh --force ${PACKAGE_FILE}
+    params:
+      - name: PACKAGE_FILE
+        validate: PATH
+
+  - name: package.uninstall
+    user: root
+    timeout: 3m
+    commands:
+      - case:
+          os: debian
+        cmd: echo ${PACKAGE_NAME} | sed -r 's/-[0-9.-]+.*//g' | xargs dpkg -P --force-depends
+      - default:
+        cmd: rpm -e --nodeps ${PACKAGE_NAME}
+    params:
+      - name: PACKAGE_NAME
+        validate: PACKAGE_NAME

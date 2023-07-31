@@ -1,14 +1,30 @@
-.DS_Store
-.vscode
-.idea
-*.iml
-*.swp
-*.log
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-*.test
-*.out
+src/**/*.pyc
+src/**/build
+src/monitor_app/*.so
+src/monitor_app/*.cpp
+src/monitor_app/*.c
+src/obagent/*.so
+src/obagent/*.cpp
+src/obagent/*.c
+src/conf/config.conf
+
+# go Binary files
 bin/*
+go.work
+go.work.sum
+
+# go test files and generated files
+bindata/
+iostat
+tests/testdata/*
+tests/testdata/data/
+tests/mock*/*
+tests/coverage.out
+tests/coverage-report/
+
+# macOS files
+.DS_Store
+
+
+.idea/*
+*.iml

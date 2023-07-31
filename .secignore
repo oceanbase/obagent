@@ -9,12 +9,14 @@
 **
   http://license.coscl.org.cn/MulanPSL2
   http://1.1.1.1:9093
+  http://127.0.0.1:9093
   http://127.0.0.1:9100/metrics
   http://127.0.0.1:9091/metrics/node
   http://127.0.0.1:9090/metrics/node
   https://mirrors.aliyun.com/goproxy/
   https://facebook.github.io/watchman/
   https://github.com/oceanbase/obagent
+  https://goproxy.cn
   https://github.com/krallin/tini/*
   https://bixense.com/clicolors/
 --------------------------------------------------------
@@ -23,12 +25,16 @@
 /README.md
 /README-CN.md
 /LICENCE
-/plugins/inputs/oceanbase/log/log_utils.go
-/plugins/inputs/prometheus/prometheus_test.go
 /docs/develop-guide.md
 /docs/install-and-deploy/install-obagent.md
 /docs/install-and-deploy/deploy-obagent-with-obd.md
 /docs/install-and-deploy/deploy-obagent-manually.md
 /.git/**
+
+/build_rpm_obagent.aci.yml
+/Makefile.common
+/packaging/**
+**/**_test.go
+/rpm/obagent.spec
 --------------------------------------------------------
 # Config the ignored fold to escape the Chinese scan by GLOB wildcard

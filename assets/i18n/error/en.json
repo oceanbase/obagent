@@ -1,0 +1,68 @@
+{
+  "err.bad.request": "Bad request: %v",
+  "err.illegal.argument": "Illegal argument: %v",
+  "err.unexpected": "Unexpected error: %v",
+
+  "err.execute.command": "Execute shell command failed: %v",
+
+  "err.download.file": "Cannot download file from url: %s, reason: %s",
+  "err.invalid.checksum": "Invalid checksum",
+  "err.write.file": "Cannot write to file %v, reason: %v",
+  "err.find.file": "Cannot find file under %v, reason: %v",
+  "err.check.file.exists": "Cannot check whether file %v exists, reason: %v",
+
+  "err.create.directory": "Cannot create directory %v, reason: %v",
+  "err.remove.directory": "Cannot remove directory %v, reason: %v",
+  "err.chown.directory": "Cannot chown for directory %v, reason: %v",
+
+  "err.create.symlink": "Cannot create symbolic link from %v to %v, reason %v",
+  "err.process.cgroup": "Process cgroup failed: %v, reason: %v",
+
+  "err.task.not.found": "Task specified by token not found %v",
+
+  "err.query.package": "Query software package failed, reason: %v",
+  "err.install.package": "Install software package failed, reason: %v",
+  "err.uninstall.package": "Uninstall software package failed, reason: %v",
+  "err.extract.package": "Extract software package failed, reason: %v",
+
+  "err.check.process.exists": "Cannot check process existence of %v, reason: %v",
+  "err.get.process.info": "Cannot get process info of %v, reason: %v",
+  "err.stop.process": "Cannot stop process %v, reason: %v",
+  "err.get.process.proc": "Cannot get /proc/%v of process %v by user %v, reason: %v",
+
+  "err.system.disk.get.usage": "Cannot get disk usage of %v, reason: %v",
+  "err.system.disk.batch.get.disk.infos": "Cannot get disk infos, reason: %v",
+
+  "err.ob.install.pre-check": "Install OB pre-check failed: %v",
+  "err.ob.io.bench": "Do io bench failed: %v",
+  "err.observer.start": "Start observer failed: %v",
+  "err.check.observer.accessible": "Check observer accessible failed: %v",
+  "err.ob.bootstrap": "Bootstrap OB failed: %v",
+  "err.clean.ob.data.files": "Clean OB data files failed: %v",
+  "err.clean.ob.all.files": "Clean OB all files failed: %v",
+  "err.run.upgrade.script": "Failed to run upgrade script:'%v'",
+
+  "err.backup.start.backup.agent": "Start backup agent failed: %v",
+  "err.backup.stop.backup.agent": "Stop backup agent failed: %v",
+  "err.backup.check.backup.agent.online": "Check backup agent online failed: %v",
+  "err.backup.clean.backup.agent.files": "Clean backup agent files failed: %v",
+  "err.backup.clean.backup.data": "Clean backup data failed: %v",
+
+  "err.dump.backup.file": "Dump backup file %v failed: %v",
+
+  "err.backup.set.storage.client": "Set storage client failed，bucket: %v, reason: %v",
+  "err.backup.check.bucket": "check storage bucket failed, bucket: %v, reason: %v",
+  "err.backup.object.not.found": "object %v not found, bucket: %v, reason: %v",
+  "err.backup.get.storage.object": "get cos bucket %v object %v list failed, reason %v",
+  "err.backup.del.storage.object": "Delete cos bucket %v object %v failed, reason %v",
+
+  "err.agent.agentd.already.running": "agentd already running with pid file",
+  "err.agent.agentd.not.running": "agentd is not running",
+  "err.agent.agentd.exited.quickly": "start agentd failed, agentd exited quickly",
+
+  "err.monagent.pipeline.already.start": "monagent pipeling already start",
+  "err.monagent.pipeline.start.failed": "monagent pipeline start failed",
+  "err.monagent.remove.pipeline": "Remove monagent pipeline instance failed: %v",
+
+  "err.last.message.stub": "Last message stub"
+}

@@ -1,0 +1,29 @@
+
+runDir: ${obagent.home.path}/run
+logDir: ${obagent.home.path}/log
+services:
+  ob_mgragent:
+    program: ${obagent.home.path}/bin/ob_mgragent
+    runDir: ${obagent.home.path}/run
+    #kill_wait: 0s
+    finalWait: 5s
+    minLiveTime: 3s
+    quickExitLimit: 3
+#    limit:
+#      cpuQuota: 2.0
+#      memoryQuota: 1024MB
+    stdout: ${obagent.home.path}/log/ob_mgragent.output.log
+    stderr: ${obagent.home.path}/log/ob_mgragent.error.log
+
+  ob_monagent:
+    program: ${obagent.home.path}/bin/ob_monagent
+    runDir: ${obagent.home.path}/run
+    #kill_wait: 0s
+    finalWait: 5s
+    minLiveTime: 3s
+    quickExitLimit: 3
+    limit:
+      cpuQuota: 2.0
+      memoryQuota: 2048MB
+    stdout: ${obagent.home.path}/log/ob_monagent.output.log
+    stderr: ${obagent.home.path}/log/ob_monagent.error.log

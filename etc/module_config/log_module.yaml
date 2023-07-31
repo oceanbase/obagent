@@ -1,0 +1,23 @@
+modules:
+    -
+      module: monagent.log.config
+      moduleType: monagent.log.config
+      process: ob_monagent
+      config:
+          level: ${monagent.log.level}
+          filename: ${obagent.home.path}/log/monagent.log
+          maxsize: ${monagent.log.maxsize.mb}
+          maxage: ${monagent.log.maxage.days}
+          maxbackups: ${monagent.log.maxbackups}
+          compress: ${monagent.log.compress}
+    -
+      module: mgragent.log.config
+      moduleType: mgragent.log.config
+      process: ob_mgragent
+      config:
+          level: ${mgragent.log.level}
+          filename: ${obagent.home.path}/log/mgragent.log
+          maxsize: ${mgragent.log.maxsize.mb}
+          maxage: ${mgragent.log.maxage.days}
+          maxbackups: ${mgragent.log.maxbackups}
+          compress: ${mgragent.log.compress}

@@ -1,15 +1,3 @@
-// Copyright (c) 2021 OceanBase
-// obagent is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//
-// http://license.coscl.org.cn/MulanPSL2
-//
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-// EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-// MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 package config
 
 import (
@@ -17,21 +5,15 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/oceanbase/obagent/lib/mask"
 )
 
-// ConfigVersion Configuration version number
 type ConfigVersion struct {
 	ConfigVersion string
-}
-
-func generateNewConfigVersion() *ConfigVersion {
-	return &ConfigVersion{
-		ConfigVersion: time.Now().Format("2006-01-02T15:04:05.9999Z07:00"),
-	}
 }
 
 type KeyValue struct {
@@ -55,7 +37,7 @@ type NotifyModuleConfig struct {
 	UpdatedKeyValues map[string]interface{} `json:"updatedKeyValues"`
 }
 
-func UpdateConfig(ctx context.Context, kvs *KeyValues, async bool) (*ConfigVersion, error) {
+func UpdateConfig(ctx context.Context, kvs *KeyValues) (*ConfigVersion, error) {
 	keyValues := make(map[string]interface{})
 	for _, kv := range kvs.Configs {
 		keyValues[kv.Key] = kv.Value
@@ -66,57 +48,96 @@ func UpdateConfig(ctx context.Context, kvs *KeyValues, async bool) (*ConfigVersi
 
 	result, err := verifyAndSaveConfig(ctx, keyValues)
 	if err != nil {
-		log.WithContext(ctx).Errorf("VerifyAndSaveConfig err:%+v", err)
+		log.WithContext(ctx).Errorf("VerifyAndSaveConfig err:%s", err)
 		return nil, err
 	}
 
-	notifyFunc := func() error {
-		err := NotifyModuleConfigs(ctx, result)
-		if err != nil {
-			ctxlog.Errorf("update module config failed, config version:%s, changed modules length:%d, err:%+v",
-				result.ConfigVersion.ConfigVersion, len(result.UpdatedConfigs), err)
-		}
-		return err
-	}
-	if async {
-		go notifyFunc()
-	} else {
-		err := notifyFunc()
-		return nil, err
+	notifyErr := NotifyModuleConfigs(ctx, result)
+	if notifyErr != nil {
+		ctxlog.Errorf("update module config failed, config version:%s, changed modules length:%d, err:%+v",
+			result.ConfigVersion.ConfigVersion, len(result.UpdatedConfigs), notifyErr)
 	}
 
 	return result.ConfigVersion, nil
 }
 
-func UpdateConfigPairs(pairs []string) error {
-	log.WithField("pairs", pairs).Debugf("update module configs")
+func UpdateConfigPairs(ctx context.Context, pairs []string) error {
+	maskedPairs := mask.MaskSlice(pairs)
+	log.WithContext(ctx).WithField("pairs", maskedPairs).Info("update module configs")
+	kvs, err := getKeyValues(pairs)
+	if err != nil {
+		log.WithContext(ctx).Errorf("getKeyValues, err:%+v", err)
+		return err
+	}
+
+	configVersion, err := UpdateConfig(context.Background(), &KeyValues{Configs: kvs})
+	if err != nil {
+		log.WithContext(ctx).Errorf("update config, err:%+v", err)
+		return err
+	}
+	log.WithContext(ctx).Infof("update config success, version:%+v", configVersion)
+	return nil
+}
+
+func ValidateConfigPairs(ctx context.Context, pairs []string) error {
+	maskedPairs := mask.MaskSlice(pairs)
+	log.WithContext(ctx).WithField("pairs", maskedPairs).Info("validate module configs")
+	kvs, err := getKeyValues(pairs)
+	if err != nil {
+		log.WithContext(ctx).Errorf("getKeyValues, err:%+v", err)
+		return err
+	}
+
+	return ValidateConfigKeyValues(ctx, kvs)
+}
+
+func ValidateConfigKeyValues(ctx context.Context, kvs []KeyValue) error {
+	log.WithContext(ctx).Info("validate module configs")
+
+	configMain, err := decodeConfigPropertiesGroups(ctx, mainConfigProperties.configPropertiesDir)
+	if err != nil {
+		err = errors.Errorf("decode config properties from path %s, err:%s", mainConfigProperties.configPropertiesDir, err)
+		log.WithContext(ctx).Error(err)
+		return err
+	}
+	for _, kv := range kvs {
+		property, ex := configMain.allConfigProperties[kv.Key]
+		if !ex {
+			return errors.Errorf("key %s is not exist in config.", kv.Key)
+		}
+		val := fmt.Sprintf("%+v", property.Val())
+		if val != kv.Value {
+			if !property.Masked {
+				log.WithContext(ctx).Warnf("key %s is not equal with config, current value is %+v", kv.Key, val)
+			}
+			return errors.Errorf("key %s is not equal with config.", kv.Key)
+		}
+	}
+
+	return nil
+}
+
+func getKeyValues(pairs []string) ([]KeyValue, error) {
 	kvs := make([]KeyValue, 0, len(pairs))
 	for _, pair := range pairs {
 		key, value, err := parseKeyValue(pair)
 		if err != nil {
-			log.Errorf("parse pair %s, err:%+v", pair, err)
-			return err
+			log.Errorf("parse pair %s, err:%+v", mask.Mask(pair), err)
+			return nil, err
 		}
 		kvs = append(kvs, KeyValue{
 			Key:   key,
 			Value: value,
 		})
 	}
-	log.WithField("key-values", kvs).Debugf("update module configs")
 
-	configVersion, err := UpdateConfig(context.Background(), &KeyValues{Configs: kvs}, true)
-	if err != nil {
-		log.Errorf("update config, err:%+v", err)
-		return err
-	}
-	log.Infof("update config success, version:%+v", configVersion)
-	return nil
+	return kvs, nil
 }
 
 func parseKeyValue(pairStr string) (string, string, error) {
 	pair := strings.Split(pairStr, "=")
 	if len(pair) != 2 {
-		return "", "", errors.Errorf("key-value pair %s is not a valid key=value formatted.", pairStr)
+		return "", "", errors.Errorf("key-value pair %s is not a valid key=value formatted.", mask.Mask(pairStr))
 	}
 	return pair[0], pair[1], nil
 }
@@ -147,7 +168,7 @@ func verifyAndSaveConfig(ctx context.Context, keyValues map[string]interface{}) 
 	}
 	if len(diffkvs) <= 0 {
 		currentVersion := GetCurrentConfigVersion()
-		log.Infof("configs do not change, no need to modify, current config version:%+v.", currentVersion)
+		ctxlog.Infof("configs do not change, no need to modify, current config version:%+v.", currentVersion)
 		return &VerifyConfigResult{
 			ConfigVersion: currentVersion,
 		}, nil
@@ -161,12 +182,12 @@ func verifyAndSaveConfig(ctx context.Context, keyValues map[string]interface{}) 
 		return nil, err
 	}
 
-	configVersion, err := saveIncrementalConfig(diffkvs)
+	configVersion, err := saveIncrementalConfig(ctx, diffkvs)
 	if err != nil {
 		ctxlog.WithFields(log.Fields{
 			"configVersion":   configVersion,
 			"updated configs": MaskedKeyValues(diffkvs),
-		}).Errorf("save config failed, please try again later or contant administrator. err:%+v", err)
+		}).Errorf("save config failed, please try again later or content administrator. err:%+v", err)
 		return nil, err
 	}
 
@@ -210,7 +231,7 @@ func getUpdatedConfigs(ctx context.Context, diffkvs map[string]interface{}) ([]*
 			return nil, err
 		}
 		changedConfig := &NotifyModuleConfig{
-			Process: Process(sample.Process),
+			Process: sample.Process,
 			Module:  module,
 			Config:  finalConf,
 		}
@@ -219,7 +240,7 @@ func getUpdatedConfigs(ctx context.Context, diffkvs map[string]interface{}) ([]*
 	}
 	ctxlog.WithField("change config modules", moduleKeys).Info("changed module")
 	if len(changedConfigs) <= 0 {
-		return nil, errors.Errorf("no config changed")
+		return changedConfigs, nil
 	}
 	for _, conf := range changedConfigs {
 		moduleChangedKeys, ex := moduleKeys[conf.Module]
@@ -240,23 +261,24 @@ func getUpdatedConfigs(ctx context.Context, diffkvs map[string]interface{}) ([]*
 	return changedConfigs, nil
 }
 
-func saveIncrementalConfig(kvs map[string]interface{}) (*ConfigVersion, error) {
-	return mainConfigProperties.saveIncrementalConfig(kvs)
+func saveIncrementalConfig(ctx context.Context, kvs map[string]interface{}) (*ConfigVersion, error) {
+	return mainConfigProperties.saveIncrementalConfig(ctx, kvs)
 }
 
-func snapshotForConfigVersion(configVersion string) error {
+func snapshotForConfigVersion(ctx context.Context, configVersion string) error {
 	snapshotPath := filepath.Join(filepath.Dir(mainConfigProperties.configPropertiesDir), configVersion)
 
 	var errs error
-	err := snapshotForPath(snapshotPath, mainConfigProperties.configPropertiesDir)
+	err := snapshotForPath(ctx, snapshotPath, mainConfigProperties.configPropertiesDir)
 	if err != nil {
-		log.Errorf("save config snapshot %s err:%+v", configVersion, err)
+		log.WithContext(ctx).Errorf("save config snapshot %s err:%+v", configVersion, err)
 		errs = errors.Errorf("%s, err:%s", errs, err)
 	}
-	err = snapshotForPath(snapshotPath, mainModuleConfig.moduleConfigDir)
+	err = snapshotForPath(ctx, snapshotPath, mainModuleConfig.moduleConfigDir)
 	if err != nil {
-		log.Errorf("save module config snapshot %s to dir %s err:%+v", configVersion, snapshotPath, err)
+		log.WithContext(ctx).Errorf("save module config snapshot %s to dir %s err:%+v", configVersion, snapshotPath, err)
 		errs = errors.Errorf("%s, err:%s", errs, err)
 	}
+	configMetaBackupWorker.checkOnce(ctx)
 	return errs
 }

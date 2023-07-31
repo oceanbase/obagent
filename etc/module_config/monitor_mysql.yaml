@@ -3,7 +3,7 @@ mysqldInput: &mysqldInput
   config:
     timeout: 10s
     pluginConfig:
-        dsn: ${monagent.mysql.monitor.user}:${monagent.mysql.monitor.password}@(${monagent.mysql.host}:${monagent.mysql.sql.port})/
+      dsn: ${monagent.mysql.monitor.user}:${monagent.mysql.monitor.password}@(${monagent.mysql.host}:${monagent.mysql.sql.port})/
 
 retagProcessor: &retagProcessor
   plugin: retagProcessor
@@ -20,19 +20,19 @@ prometheusExporter: &prometheusExporter
     timout: 10s
     pluginConfig:
       formatType: fmtText
+      exposeUrl: /metrics/mysql
 
 modules:
   - module: monitor.mysql
     moduleType: monagent.pipeline
-    process: monagent
+    process: ob_monagent
     config:
       name: monitor.mysql
       status: ${monagent.pipeline.mysql.status}
       pipelines:
         - name: mysql_info
           config:
-            scheduleStrategy: trigger
-            exposeUrl: /metrics/mysql
+            scheduleStrategy: bySource
           structure:
             inputs:
               - <<: *mysqldInput

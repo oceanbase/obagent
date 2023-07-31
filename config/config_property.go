@@ -1,22 +1,13 @@
-// Copyright (c) 2021 OceanBase
-// obagent is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//
-// http://license.coscl.org.cn/MulanPSL2
-//
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-// EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-// MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 package config
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"sort"
+	"syscall"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -29,7 +20,7 @@ var (
 )
 
 const (
-	maskedString = "****"
+	maskedResult = "xxx"
 )
 
 type ConfigPropertiesMain struct {
@@ -60,8 +51,8 @@ func (c *ConfigPropertiesMain) ContainsRestartNeededKeyValues(module string, pro
 			continue
 		}
 		c.needRestartModules[module].RestartKeyValues[key] = value
-		masedKeyValues := MaskedKeyValues(c.needRestartModules[module].RestartKeyValues)
-		c.needRestartModules[module].RestartKeyValues = masedKeyValues
+		maskedKeyValues := MaskedKeyValues(c.needRestartModules[module].RestartKeyValues)
+		c.needRestartModules[module].RestartKeyValues = maskedKeyValues
 		log.Warnf("config key %s is changed, need restart agent process", key)
 		restatNeeded = true
 	}
@@ -76,7 +67,7 @@ func (c *ConfigPropertiesMain) MaskedKeyValues(kvs map[string]interface{}) map[s
 			continue
 		}
 		if property.Masked {
-			ret[key] = maskedString
+			ret[key] = maskedResult
 		} else {
 			ret[key] = value
 		}
@@ -88,6 +79,24 @@ func (c *ConfigPropertiesMain) GetConfigPropertiesKeyValues() map[string]interfa
 	ret := make(map[string]interface{}, len(c.allConfigProperties))
 	for key, property := range c.allConfigProperties {
 		ret[key] = property.Val()
+	}
+	return ret
+}
+
+func GetConfigPropertieByName(name string) interface{} {
+	for key, property := range mainConfigProperties.allConfigProperties {
+		if key == name {
+			return property.Val()
+		}
+	}
+
+	return nil
+}
+
+func (c *ConfigPropertiesMain) GetConfigPropertiesMaskedKeys() map[string]bool {
+	ret := make(map[string]bool, len(c.allConfigProperties))
+	for key := range c.allConfigProperties {
+		ret[key] = true
 	}
 	return ret
 }
@@ -104,10 +113,11 @@ func (c *ConfigPropertiesMain) GetDiffConfigProperties(keyValues map[string]inte
 		}
 		val, err := property.Parse(value)
 		if err != nil {
-			return nil, errors.Errorf("pase key %s failed, err:%+v", key, err)
+			return nil, errors.Errorf("pase key %s failed, err:%s", key, err)
 		}
 		// diff configs
-		if property.Value != val {
+		// config may be decrypted, use Val()
+		if property.Val() != val {
 			properties[key] = val
 		}
 	}
@@ -136,14 +146,28 @@ func (c *ConfigPropertiesMain) GetCurrentConfigVersion() *ConfigVersion {
 	}
 }
 
-func (c *ConfigPropertiesMain) saveIncrementalConfig(kvs map[string]interface{}) (*ConfigVersion, error) {
+func (c *ConfigPropertiesMain) saveIncrementalConfig(ctx context.Context, kvs map[string]interface{}) (*ConfigVersion, error) {
 	groups := map[*ConfigPropertiesGroup]bool{}
 	changed := false
 	var err error
+	defaultConfigFile := filepath.Join(c.configPropertiesDir, "default_config.yaml")
+	var defaultGroup *ConfigPropertiesGroup
+	for _, group := range c.ConfigGroups {
+		if group.ConfigFile == defaultConfigFile {
+			defaultGroup = group
+		}
+	}
+	if defaultGroup == nil {
+		defaultGroup = &ConfigPropertiesGroup{
+			Configs:    []*ConfigProperty{},
+			ConfigFile: defaultConfigFile,
+		}
+	}
+
 	for key, val := range kvs {
 		property, ex := c.allConfigProperties[key]
 		if !ex {
-			log.WithField("config key", key).Errorf("config key not exist")
+			log.WithContext(ctx).WithField("config key", key).Errorf("config key not exist")
 			continue
 		}
 		if property.Value != val {
@@ -151,7 +175,7 @@ func (c *ConfigPropertiesMain) saveIncrementalConfig(kvs map[string]interface{})
 		}
 		finalVal := val
 		if property.Encrypted {
-			log.Debugf("encrypt config key %s", property.Key)
+			log.WithContext(ctx).Debugf("encrypt config key %s", property.Key)
 			rawVal := cast.ToString(val)
 			finalVal, err = configCrypto.Encrypt(rawVal)
 			if err != nil {
@@ -160,17 +184,24 @@ func (c *ConfigPropertiesMain) saveIncrementalConfig(kvs map[string]interface{})
 		}
 		c.allConfigProperties[key].Value = finalVal
 
+		configFile := ""
 		for _, group := range c.ConfigGroups {
 			for _, property := range group.Configs {
 				if property.Key == key {
 					property.Value = finalVal
 					groups[group] = true
+					configFile = group.ConfigFile
 				}
 			}
 		}
+		if configFile == "" {
+			defaultGroup.Configs = append(defaultGroup.Configs, c.allConfigProperties[key])
+			groups[defaultGroup] = true
+		}
 	}
 	if !changed {
-		return nil, errors.Errorf("all configs is not changed")
+		log.WithContext(ctx).Info("all configs is not changed")
+		return c.GetCurrentConfigVersion(), nil
 	}
 
 	var reterr error
@@ -179,15 +210,15 @@ func (c *ConfigPropertiesMain) saveIncrementalConfig(kvs map[string]interface{})
 		group.ConfigVersion = configVersion.ConfigVersion
 		err := group.SaveConfig()
 		if err != nil {
-			log.WithField("ConfigGroup", group).Errorf("save config to file err:%+v", err)
+			log.WithContext(ctx).WithField("ConfigGroup", group).Errorf("save config to file err:%+v", err)
 			reterr = err
 		} else {
-			log.Infof("save config %s to file %s", group.ConfigVersion, group.ConfigFile)
+			log.WithContext(ctx).Infof("save config %s to file %s", group.ConfigVersion, group.ConfigFile)
 		}
 	}
-	err = snapshotForConfigVersion(configVersion.ConfigVersion)
+	err = snapshotForConfigVersion(ctx, configVersion.ConfigVersion)
 	if err != nil {
-		log.Errorf("save config snapshot %s err:%+v", configVersion.ConfigVersion, err)
+		log.WithContext(ctx).Errorf("save config snapshot %s err:%+v", configVersion.ConfigVersion, err)
 		reterr = err
 	}
 
@@ -213,12 +244,27 @@ type ConfigPropertiesGroup struct {
 }
 
 func (g *ConfigPropertiesGroup) SaveConfig() error {
+	var err error
 	file, err := os.OpenFile(g.ConfigFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	return yaml.NewEncoder(file).Encode(g)
+	defer func(file *os.File) {
+		err = syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+		if err != nil {
+			log.Errorf("unLock config file failed, err: %s", err)
+		}
+	}(file)
+	err = syscall.Flock(int(file.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+	if err != nil {
+		return err
+	}
+	err = yaml.NewEncoder(file).Encode(g)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type ConfigProperty struct {
@@ -236,18 +282,20 @@ type ConfigProperty struct {
 }
 
 func (c *ConfigProperty) Val() interface{} {
-	var val interface{}
-	val = c.Value
+	val := c.Value
+	if c.Value == nil {
+		val = c.DefaultValue
+	}
 	if c.Encrypted {
 		rawVal := cast.ToString(val)
 		// val is nil, no need to decrypt
 		if len(rawVal) == 0 {
 			return rawVal
 		}
-		log.Debugf("decrypt config key %s", c.Key)
+		log.Debugf("decrypt config key %s rawVal-length:%d", c.Key, len(rawVal))
 		finalVal, err := configCrypto.Decrypt(rawVal)
 		if err != nil {
-			log.Errorf("Decrypt config key %s, value %s err:%+v", c.Key, c.Value, err)
+			log.Errorf("Decrypt config key %s, err:%+v", c.Key, err)
 		}
 		return finalVal
 	}
@@ -268,29 +316,29 @@ func (c *ConfigProperty) Parse(value interface{}) (val interface{}, err error) {
 	case ValueBool:
 		val, err = cast.ToBoolE(value)
 		if err != nil {
-			return nil, errors.Errorf("assert %s %+v (%s) to bool, err:%+v", c.Key, value, reflect.TypeOf(value), err)
+			return nil, errors.Errorf("assert %s %+v (%s) to bool, err:%s", c.Key, value, reflect.TypeOf(value), err)
 		}
 		return val, nil
 	case ValueInt64:
 		val, err = cast.ToInt64E(value)
 		if err != nil {
-			return nil, errors.Errorf("assert %s %+v (%s) to int64, err:%+v", c.Key, value, reflect.TypeOf(value), err)
+			return nil, errors.Errorf("assert %s %+v (%s) to int64, err:%s", c.Key, value, reflect.TypeOf(value), err)
 		}
 		return val, nil
 	case ValueFloat64:
 		val, err = cast.ToFloat64E(value)
 		if err != nil {
-			return nil, errors.Errorf("assert %s %+v (%s) to numberic float64, err:%+v", c.Key, value, reflect.TypeOf(value), err)
+			return nil, errors.Errorf("assert %s %+v (%s) to numeric float64, err:%s", c.Key, value, reflect.TypeOf(value), err)
 		}
 		return val, nil
 	case ValueString:
 		val, err = cast.ToStringE(value)
 		if err != nil {
-			return nil, errors.Errorf("assert %s %+v (%s) to string, err:%+v", c.Key, value, reflect.TypeOf(value), err)
+			return nil, errors.Errorf("assert %s %+v (%s) to string, err:%s", c.Key, value, reflect.TypeOf(value), err)
 		}
 		return val, nil
 	default:
-		return nil, errors.Errorf("key %s unsurported valueType %s", c.Key, c.ValueType)
+		return nil, errors.Errorf("key %s unsuported valueType %s", c.Key, c.ValueType)
 	}
 }
 
@@ -307,6 +355,14 @@ func MaskedKeyValues(kvs map[string]interface{}) map[string]interface{} {
 	return mainConfigProperties.MaskedKeyValues(kvs)
 }
 
+func MaskedStringKeyValues(kvs map[string]string) map[string]interface{} {
+	kvs2 := make(map[string]interface{}, len(kvs))
+	for k, v := range kvs {
+		kvs2[k] = fmt.Sprint(v)
+	}
+	return mainConfigProperties.MaskedKeyValues(kvs2)
+}
+
 func GetConfigPropertiesKeyValues() map[string]string {
 	kvs := mainConfigProperties.GetConfigPropertiesKeyValues()
 	ret := make(map[string]string, len(kvs))
@@ -314,6 +370,15 @@ func GetConfigPropertiesKeyValues() map[string]string {
 		ret[key] = fmt.Sprintf("%+v", val)
 	}
 	return ret
+}
+
+func GetConfigPropertiesByKey(key string) string {
+	ret := GetConfigPropertiesKeyValues()
+	return ret[key]
+}
+
+func GetConfigPropertiesMaskedKeys() map[string]bool {
+	return mainConfigProperties.GetConfigPropertiesMaskedKeys()
 }
 
 func GetDiffConfigProperties(keyValues map[string]interface{}, fatal bool) (map[string]interface{}, error) {
@@ -328,6 +393,10 @@ type RestartModuleKeyValues struct {
 	Module           string
 	Process          string
 	RestartKeyValues map[string]interface{}
+}
+
+func NeedRestartModuleKeyValues() map[string]*RestartModuleKeyValues {
+	return mainConfigProperties.needRestartModules
 }
 
 func ContainsRestartNeededKeyValues(module string, process string, kvs map[string]interface{}) bool {

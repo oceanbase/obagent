@@ -1,15 +1,3 @@
-// Copyright (c) 2021 OceanBase
-// obagent is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//
-// http://license.coscl.org.cn/MulanPSL2
-//
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-// EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-// MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 package sdk
 
 import (
@@ -19,37 +7,52 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/oceanbase/obagent/api/web"
 	"github.com/oceanbase/obagent/config"
-	"github.com/oceanbase/obagent/engine"
+	"github.com/oceanbase/obagent/config/monagent"
+	agentlog "github.com/oceanbase/obagent/log"
+	"github.com/oceanbase/obagent/monitor/engine"
 )
 
-//RegisterMonagentCallbacks To load the business callback module,
-//the business needs to provide a callback function,
-//and the configuration can be obtained when the business is initialized or changed.
-func RegisterMonagentCallbacks() error {
-	// register pipeline module
+// RegisterMonagentCallbacks When the service callback module is loaded,
+// the service needs to provide the callback function,
+// and the configuration can be obtained when the service is initialized or changed.
+func RegisterMonagentCallbacks(ctx context.Context) error {
 	err := config.RegisterConfigCallback(
+		config.MonitorLogConfigModuleType,
+		func() interface{} {
+			return agentlog.LoggerConfig{}
+		},
+		setLogger,
+		setLogger,
+	)
+	if err != nil {
+		return err
+	}
+
+	// register pipeline module
+	err = config.RegisterConfigCallback(
 		config.MonitorPipelineModuleType,
 		func() interface{} {
-			return &config.PipelineModule{}
+			return &monagent.PipelineModule{}
 		},
-		// Initial configuration callback
+		// Initialize the configuration callback
 		func(ctx context.Context, moduleConf interface{}) error {
-			conf, ok := moduleConf.(*config.PipelineModule)
+			conf, ok := moduleConf.(*monagent.PipelineModule)
 			if !ok {
 				return errors.Errorf("init module %s conf %s is not *config.PipelineModule", config.MonitorPipelineModuleType, reflect.TypeOf(moduleConf))
 			}
-			err := engine.InitPipelineModuleCallback(conf)
+			err := engine.InitPipelineModuleCallback(ctx, conf)
 			return err
 		},
 
-		// Configuration update callback
+		// Configure update callbacks
 		func(ctx context.Context, moduleConf interface{}) error {
-			conf, ok := moduleConf.(*config.PipelineModule)
+			conf, ok := moduleConf.(*monagent.PipelineModule)
 			if !ok {
 				return errors.Errorf("update module %s conf %s is not *config.PipelineModule", config.MonitorPipelineModuleType, reflect.TypeOf(moduleConf))
 			}
-			err := engine.UpdatePipelineModuleCallback(conf)
+			err := engine.UpdatePipelineModuleCallback(ctx, conf)
 			return err
 		},
 	)
@@ -63,24 +66,24 @@ func RegisterMonagentCallbacks() error {
 		func() interface{} {
 			return config.BasicAuthConfig{}
 		},
-		// Initial configuration callback
+		// Initialize the configuration callback
 		func(ctx context.Context, moduleConf interface{}) error {
 			basicConf, ok := moduleConf.(config.BasicAuthConfig)
 			if !ok {
 				return errors.Errorf("init module %s conf %s is not config.BasicAuthConfig", config.MonitorServerBasicAuthModuleType, reflect.TypeOf(moduleConf))
 			}
-			engine.NotifyServerBasicAuth(basicConf)
-			log.WithContext(ctx).Infof("module %s init config sucessfully", config.MonitorServerBasicAuthModuleType)
+			notifyServerBasicAuth(basicConf)
+			log.WithContext(ctx).Infof("module %s init config successfully", config.MonitorServerBasicAuthModuleType)
 			return nil
 		},
-		// Configuration update callback
+		// Configure update callbacks
 		func(ctx context.Context, moduleConf interface{}) error {
 			basicConf, ok := moduleConf.(config.BasicAuthConfig)
 			if !ok {
 				return errors.Errorf("update module %s conf %s is not config.BasicAuthConfig", config.MonitorServerBasicAuthModuleType, reflect.TypeOf(moduleConf))
 			}
-			engine.NotifyServerBasicAuth(basicConf)
-			log.WithContext(ctx).Infof("module %s update config sucessfully", config.MonitorServerBasicAuthModuleType)
+			notifyServerBasicAuth(basicConf)
+			log.WithContext(ctx).Infof("module %s update config successfully", config.MonitorServerBasicAuthModuleType)
 			return nil
 		},
 	)
@@ -88,36 +91,12 @@ func RegisterMonagentCallbacks() error {
 		return err
 	}
 
-	// monagent admin server basic auth
-	err = config.RegisterConfigCallback(
-		config.MonitorAdminBasicAuthModuleType,
-		func() interface{} {
-			return config.BasicAuthConfig{}
-		},
-		// Initial configuration callback
-		func(ctx context.Context, moduleConf interface{}) error {
-			basicConf, ok := moduleConf.(config.BasicAuthConfig)
-			if !ok {
-				return errors.Errorf("init module %s conf %s is not config.BasicAuthConfig", config.MonitorAdminBasicAuthModuleType, reflect.TypeOf(moduleConf))
-			}
-			engine.NotifyAdminServerBasicAuth(basicConf)
-			log.WithContext(ctx).Infof("module %s init config sucessfully", config.MonitorAdminBasicAuthModuleType)
-			return nil
-		},
-		// Configuration update callback
-		func(ctx context.Context, moduleConf interface{}) error {
-			basicConf, ok := moduleConf.(config.BasicAuthConfig)
-			if !ok {
-				return errors.Errorf("update module %s conf %s is not config.BasicAuthConfig", config.MonitorAdminBasicAuthModuleType, reflect.TypeOf(moduleConf))
-			}
-			engine.NotifyAdminServerBasicAuth(basicConf)
-			log.WithContext(ctx).Infof("module %s update config sucessfully", config.MonitorAdminBasicAuthModuleType)
-			return nil
-		},
-	)
-	if err != nil {
-		return err
-	}
+	return nil
+}
 
+func notifyServerBasicAuth(basicConf config.BasicAuthConfig) error {
+	monagentServer := web.GetMonitorAgentServer()
+	monagentServer.Server.BasicAuthorizer.SetConf(basicConf)
+	monagentServer.Server.UseBasicAuth()
 	return nil
 }

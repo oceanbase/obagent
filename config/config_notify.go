@@ -1,30 +1,14 @@
-// Copyright (c) 2021 OceanBase
-// obagent is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//
-// http://license.coscl.org.cn/MulanPSL2
-//
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-// EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-// MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 package config
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"net/http"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/oceanbase/obagent/api/response"
+	"github.com/oceanbase/obagent/executor/agent"
 )
 
 var (
@@ -36,6 +20,8 @@ func init() {
 	processConfigNotifyAddresses = make(map[string]ProcessConfigNotifyAddress, 4)
 }
 
+// ProcessConfigNotifyAddress business process configuration information.
+// This information serves as sdk source data for the mgragent and agentctl.
 type ProcessConfigNotifyAddress struct {
 	Local         bool            `yaml:"local"`
 	Process       string          `yaml:"process"`
@@ -72,7 +58,7 @@ func InitModuleTypeConfig(ctx context.Context, moduleType ModuleType) error {
 		if t == moduleType {
 			err := InitModuleConfig(ctx, m)
 			if err != nil {
-				errs = append(errs, errors.Errorf("init module %s err:%+v", m, err).Error())
+				errs = append(errs, errors.Errorf("init module %s err:%s", m, err).Error())
 			}
 		}
 	}
@@ -87,19 +73,24 @@ func NotifyModuleConfigs(ctx context.Context, verifyConfigResult *VerifyConfigRe
 	if verifyConfigResult == nil {
 		return nil
 	}
-	log.WithContext(ctx).Infof("notify moduel configs length:%d", len(verifyConfigResult.UpdatedConfigs))
+	log.WithContext(ctx).Infof("notify module configs length:%d", len(verifyConfigResult.UpdatedConfigs))
+	var errs []string
 	for _, conf := range verifyConfigResult.UpdatedConfigs {
 		err := notifyModuleConfig(ctx, conf)
 		if err != nil {
-			return err
+			log.WithContext(ctx).Errorf("notify module %s err:%+v", conf.Module, err)
+			errs = append(errs, err.Error())
 		}
+	}
+	if len(errs) > 0 {
+		return errors.Errorf("notify modules err:%s", strings.Join(errs, ","))
 	}
 	return nil
 }
 
 // notify module config changed
 func notifyModuleConfig(ctx context.Context, econfig *NotifyModuleConfig) error {
-	log.Infof("module %s, notify process %s, current process %s", econfig.Module, econfig.Process, CurProcess)
+	log.WithContext(ctx).Infof("module %s, notify process %s, current process %s", econfig.Module, econfig.Process, CurProcess)
 	notifyAddress, ex := getProcessModuleConfigNotifyAddress(string(econfig.Process))
 	if !ex {
 		return errors.Errorf("process %s notify config is not found", econfig.Process)
@@ -107,11 +98,7 @@ func notifyModuleConfig(ctx context.Context, econfig *NotifyModuleConfig) error 
 	if !notifyAddress.Local && econfig.Process != CurProcess {
 		return NotifyRemoteModuleConfig(ctx, econfig)
 	}
-	callback, ex := getModuleCallback(econfig.Module)
-	if !ex {
-		return errors.Errorf("module %s not found", econfig.Module)
-	}
-	return callback.NotifyConfigCallback(ctx, econfig)
+	return NotifyLocalModuleConfig(ctx, econfig)
 }
 
 // NotifyLocalModuleConfig notify local process's module config changed
@@ -134,90 +121,90 @@ func NotifyRemoteModuleConfig(ctx context.Context, econfig *NotifyModuleConfig) 
 		"process":        econfig.Process,
 		"notify address": notifyAddress.NotifyAddress,
 	})
-	data, err := json.Marshal(econfig)
-	if err != nil {
-		err = errors.Errorf("module %s, process %s, json marshal err:%+v", econfig.Module, econfig.Process, err)
-		ctxlog.Errorf("json marshal err:%+v", err)
-		return err
-	}
 	ctxlog.Infof("notify module config")
 
-	client := &http.Client{Timeout: time.Second * 1}
-	req, err := http.NewRequest("POST", notifyAddress.NotifyAddress, bytes.NewReader(data))
-	req.Header.Add("Content-Type", "application/json")
+	admin := agent.NewAdmin(agent.DefaultAdminConf())
+	client, err := admin.NewClient(notifyAddress.Process)
 	if err != nil {
-		ctxlog.Errorf("notify config new request err:%+v", err)
-		return err
-	}
-	req.SetBasicAuth(notifyAddress.AuthConfig.Username, notifyAddress.AuthConfig.Password)
-	resp, err := client.Do(req)
-	if err != nil {
-		ctxlog.Errorf("notify config do request err:%+v", err)
-		return err
-	}
-	defer resp.Body.Close()
-
-	r := new(response.AgentResponse)
-	err = json.NewDecoder(resp.Body).Decode(r)
-	if err != nil {
-		ctxlog.Errorf("decode resp err:%+v", err)
+		ctxlog.Errorf("new client err:%+v", err)
 		return err
 	}
 
-	if !r.Successful || r.Error != nil {
-		return errors.Errorf("errorCode:%d, errorMessage:%s", r.Error.Code, r.Error.Message)
+	resp := new(agent.AgentctlResponse)
+	err = client.Call(notifyAddress.NotifyAddress, econfig, resp)
+	if err != nil {
+		ctxlog.Errorf("notify config err:%+v", err)
+		return err
 	}
-
 	return nil
 }
 
-func NotifyModules(modules []string) error {
+func NotifyAllModules(ctx context.Context) error {
+	return notifyModules(ctx, nil, true)
+}
+
+func NotifyModules(ctx context.Context, modules []string) error {
+	return notifyModules(ctx, modules, false)
+}
+
+func notifyModules(ctx context.Context, modules []string, all bool) error {
 	moduleConfigs := GetModuleConfigs()
-	notifyModules := make([]*NotifyModuleConfig, 0, len(modules))
-	for _, moduleConf := range moduleConfigs {
-		for _, module := range modules {
-			if moduleConf.Module == module {
-				process := moduleConf.Process
-				moduleConf, err := GetFinalModuleConfig(module)
-				if err != nil {
-					log.Error(err)
-					return err
+	modulesToNotify := make([]*NotifyModuleConfig, 0, len(moduleConfigs))
+	for _, moduleConfTpl := range moduleConfigs {
+		if moduleConfTpl.Disabled {
+			log.WithContext(ctx).Infof("module %s config is disabled", moduleConfTpl.Module)
+			continue
+		}
+		affected := false
+		if all {
+			affected = true
+		} else {
+			for _, module := range modules {
+				if moduleConfTpl.Module == module {
+					affected = true
+					break
 				}
-				if moduleConf.Disabled {
-					log.Warnf("module %s config is disabled", module)
-					continue
-				}
-				notifyModules = append(notifyModules, &NotifyModuleConfig{
-					Process: Process(process),
-					Module:  module,
-					Config:  moduleConf.Config,
-				})
 			}
 		}
+		if !affected {
+			continue
+		}
+
+		process := moduleConfTpl.Process
+		moduleConf, err := GetFinalModuleConfig(moduleConfTpl.Module)
+		if err != nil {
+			log.WithContext(ctx).Error(err)
+			return err
+		}
+		modulesToNotify = append(modulesToNotify, &NotifyModuleConfig{
+			Process: process,
+			Module:  moduleConfTpl.Module,
+			Config:  moduleConf.Config,
+		})
 	}
-	err := NotifyModuleConfigs(context.Background(), &VerifyConfigResult{
+	err := NotifyModuleConfigs(ctx, &VerifyConfigResult{
 		ConfigVersion:  nil,
-		UpdatedConfigs: notifyModules,
+		UpdatedConfigs: modulesToNotify,
 	})
 	if err != nil {
-		log.Errorf("notify module configs %+v, err:%+v", notifyModules, err)
+		log.WithContext(ctx).Errorf("notify module configs %+v, err:%+v", modulesToNotify, err)
 	}
 	return err
 }
 
 func NotifyModuleConfigForHttp(ctx context.Context, nconfig *NotifyModuleConfig) error {
 	ctxlog := log.WithContext(ctx)
-	err := ReloadConfigFromFiles()
+	err := ReloadConfigFromFiles(ctx)
 	if err != nil {
-		return errors.Errorf("reload config err:%+v", err)
+		return errors.Errorf("reload config err:%s", err)
 	}
 
 	moduleConf, err := GetFinalModuleConfig(nconfig.Module)
 	if err != nil {
-		return errors.Errorf("get module config err:%+v", err)
+		return errors.Errorf("get module config err:%s", err)
 	}
 
-	if nconfig.Process != Process(moduleConf.Process) {
+	if nconfig.Process != moduleConf.Process {
 		ctxlog.Warnf("module %s process should be %s, not %s", nconfig.Module, moduleConf.Process, nconfig.Process)
 	}
 
@@ -232,7 +219,7 @@ func NotifyModuleConfigForHttp(ctx context.Context, nconfig *NotifyModuleConfig)
 	nconfig.Config = moduleConf.Config
 	err = NotifyLocalModuleConfig(ctx, nconfig)
 	if err != nil {
-		return errors.Errorf("notify module config err:%+v", err)
+		return errors.Errorf("notify module config err:%s", err)
 	}
 
 	return nil

@@ -1,10 +1,97 @@
-configVersion: "2021-08-20T07:52:28.5443+08:00"
+configVersion: ""
 configs:
+    - key: monagent.ob.monitor.user
+      value: ocp_monitor
+      valueType: string
+    - key: monagent.ob.monitor.password
+      value:
+      valueType: string
+      encrypted: true
+    - key: monagent.ob.sql.port
+      value: 2881
+      valueType: int64
+    - key: monagent.ob.rpc.port
+      value: 2882
+      valueType: int64
+    - key: monagent.host.ip
+      value: 127.0.0.1
+      valueType: string
+    - key: monagent.cluster.id
+      value:
+      valueType: int64
+    - key: monagent.ob.cluster.name
+      value: ""
+      valueType: string
+    - key: monagent.ob.cluster.id
+      value: 0
+      valueType: int64
+    - key: monagent.ob.zone.name
+      value: ""
+      valueType: string
+    - key: monagent.pipeline.ob.status
+      value: inactive
+      valueType: string
+    - key: monagent.pipeline.node.status
+      value: active
+      valueType: string
+    - key: ob.log.path
+      value: /data/log1
+      valueType: string
+    - key: ob.data.path
+      value: /data/1
+      valueType: string
+    - key: ob.install.path
+      value: /home/admin/oceanbase
+      valueType: string
+    - key: host.check.readonly.mountpoint
+      value: /
+      valueType: string
+
+    - key: monagent.node.custom.interval
+      value: 1s
+      valueType: string
+    - key: monagent.node.ntp.server
+      value: 127.0.0.1
+      valueType: string
+    - key: observer.coredump.path
+      value: /data/1
+      valueType: string
+    - key: monagent.pipeline.ob.log.status
+      value: inactive
+      valueType: string
+    - key: monagent.pipeline.ob.trace.status
+      value: inactive
+      valueType: string
+    - key: es.client.addresses
+      value: ""
+      valueType: string
+    - key: es.client.auth.username
+      value: ""
+      valueType: string
+    - key: es.client.auth.password
+      value:
+      valueType: string
+      encrypted: true
+
+    - key: observer.log.path
+      value: /home/admin/oceanbase/log
+      valueType: string
+    - key: agent.log.path
+      value: /home/admin/obagent/log
+      valueType: string
+    - key: os.log.path
+      value: /var/log
+      valueType: string
+
+    - key: monagent.second.metric.cache.update.interval
+      value: 15s
+      valueType: string
+
     - key: monagent.mysql.monitor.user
       value: mysql_monitor_user
       valueType: string
     - key: monagent.mysql.monitor.password
-      value: mysql_monitor_password
+      value:
       valueType: string
       encrypted: true
     - key: monagent.mysql.sql.port
@@ -13,45 +100,11 @@ configs:
     - key: monagent.mysql.host
       value: 127.0.0.1
       valueType: string
-    - key: monagent.ob.monitor.user
-      value: {monitor_user}
-      valueType: string
-    - key: monagent.ob.monitor.password
-      value: {monitor_password}
-      valueType: string
-      encrypted: true
-    - key: monagent.ob.sql.port
-      value: {sql_port}
-      valueType: int64
-    - key: monagent.ob.rpc.port
-      value: {rpc_port}
-      valueType: int64
-    - key: monagent.ob.install.path
-      value: {ob_install_path}
-      valueType: string
-    - key: monagent.host.ip
-      value: {host_ip}
-      valueType: string
-    - key: monagent.ob.cluster.name
-      value: {cluster_name}
-      valueType: string
-    - key: monagent.ob.cluster.id
-      value: {cluster_id}
-      valueType: int64
-    - key: monagent.ob.zone.name
-      value: {zone_name}
-      valueType: string
-    - key: monagent.pipeline.ob.status
-      value: {ob_monitor_status}
-      valueType: string
-    - key: monagent.pipeline.ob.log.status
-      value: {ob_log_monitor_status}
-      valueType: string
-    - key: monagent.pipeline.node.status
-      value: {host_monitor_status}
-      valueType: string
     - key: monagent.alertmanager.address
-      value: {alertmanager_address}
+      value:
+      valueType: string
+    - key: monagent.pipeline.ob.alertmanager.status
+      value: inactive
       valueType: string
     - key: monagent.pipeline.mysql.status
       value: inactive

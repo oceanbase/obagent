@@ -1,15 +1,3 @@
-// Copyright (c) 2021 OceanBase
-// obagent is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//
-// http://license.coscl.org.cn/MulanPSL2
-//
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-// EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-// MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 package config
 
 import (
@@ -18,7 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/alecthomas/units"
 	"github.com/huandu/go-clone"
+	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
 
@@ -79,6 +69,12 @@ func TestParseStrut(t *testing.T) {
 	}
 }
 
+func TestParseBase2Bytes(t *testing.T) {
+	n, err := units.ParseBase2Bytes("2048MB")
+	assert.NoError(t, err)
+	assert.Equal(t, 2147483648, int(n))
+}
+
 func TestToStructured(t *testing.T) {
 	in := map[string]interface{}{
 		"a":      "1",
@@ -110,6 +106,32 @@ func TestToStructured(t *testing.T) {
 	if test3.A != "1" || test3.B != "2" || test3.Foo != 123 || !test3.FooBar {
 		t.Error("ToStructured wrong")
 	}
+}
+func Test_ToStructured_Slice(t *testing.T) {
+
+	configMap := map[string]interface{}{
+		"A": "A",
+		"B": "${obagent.home.path}",
+		"C": map[string]interface{}{
+			"Slice": []string{"-a", "${obagent.home.path}", "${ocp.agent.manager.http.port}"},
+			"Z":     "Z",
+		},
+	}
+
+	paramsMap := map[string]string{
+		"obagent.home.path":           "beixun_test",
+		"ocp.agent.manager.http.port": "62888",
+		"ocp.agent.monitor.http.port": "62889",
+	}
+	expander := NewExpanderWithKeyValues(
+		DefaultExpanderPrefix,
+		DefaultExpanderSuffix,
+		paramsMap,
+	)
+
+	ToStructured(&configMap, &configMap, expander.Replace)
+
+	fmt.Printf("%+v\n", configMap)
 }
 
 func TestWalk(t *testing.T) {

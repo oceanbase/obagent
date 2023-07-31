@@ -1,101 +1,101 @@
 groups:
   - name: ob-alert
     rules:
-    - alert: ob_host_connection_percent_over_threshold
-      expr: 100 * ob_active_session_num / 262144 > 80
-      for: 1m
-      labels:
-        serverity: page
-      annotations:
-        summary: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} connection used percent over threshold "
-        description: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} connection_used_percent = {{ $value }}"
+      - alert: ob_host_connection_percent_over_threshold
+        expr: 100 * ob_active_session_num / 262144 > 80
+        for: 1m
+        labels:
+          serverity: page
+        annotations:
+          summary: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} connection used percent over threshold "
+          description: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} connection_used_percent = {{ $value }}"
 
-    - alert: ob_cluster_frozen_version_delta_over_threshold
-      expr: max(ob_zone_stat{name="frozen_version"}) by (ob_cluster_name, ob_cluster_id) - min(ob_zone_stat{name="last_merged_version"}) by (ob_cluster_name, ob_cluster_id) > 1
-      for: 1m
-      labels:
-        serverity: page
-      annotations:
-        summary: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} too much frozen memstore not merged "
-        description: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} no_merge_memstore_count = {{ $value }}"
+      - alert: ob_cluster_frozen_version_delta_over_threshold
+        expr: max(ob_zone_stat{name="frozen_version"}) by (ob_cluster_name, ob_cluster_id) - min(ob_zone_stat{name="last_merged_version"}) by (ob_cluster_name, ob_cluster_id) > 1
+        for: 1m
+        labels:
+          serverity: page
+        annotations:
+          summary: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} too much frozen memstore not merged "
+          description: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} no_merge_memstore_count = {{ $value }}"
 
-    - alert: ob_cluster_exists_inactive_server
-      expr: max(ob_server_num{status="inactive"}) by (ob_cluster_name, ob_cluster_id) > 0
-      for: 1m
-      labels:
-        serverity: page
-      annotations:
-        summary: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} exists inactive observer "
-        description: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} inactive observer count is {{ $value }}"
+      - alert: ob_cluster_exists_inactive_server
+        expr: max(ob_server_num{status="inactive"}) by (ob_cluster_name, ob_cluster_id) > 0
+        for: 1m
+        labels:
+          serverity: page
+        annotations:
+          summary: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} exists inactive observer "
+          description: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} inactive observer count is {{ $value }}"
 
-    - alert: ob_cluster_exists_index_fail_table
-      expr: sum(ob_index_error_num) by (ob_cluster_name, ob_cluster_id) > 0
-      for: 1m
-      labels:
-        serverity: page
-      annotations:
-        summary: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} exists error index table"
-        description: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} error index table count is {{ $value }}"
+      - alert: ob_cluster_exists_index_fail_table
+        expr: sum(ob_index_error_num) by (ob_cluster_name, ob_cluster_id) > 0
+        for: 1m
+        labels:
+          serverity: page
+        annotations:
+          summary: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} exists error index table"
+          description: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} error index table count is {{ $value }}"
 
-    - alert: ob_cluster_merge_timeout
-      expr: max(ob_zone_stat{name="is_merge_timeout"}) by (ob_cluster_name, ob_cluster_id) == 1
-      for: 1m
-      labels:
-        serverity: page
-      annotations:
-        summary: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} merge time out"
-        description: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} merge time out"
+      - alert: ob_cluster_merge_timeout
+        expr: max(ob_zone_stat{name="is_merge_timeout"}) by (ob_cluster_name, ob_cluster_id) == 1
+        for: 1m
+        labels:
+          serverity: page
+        annotations:
+          summary: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} merge time out"
+          description: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} merge time out"
 
-    - alert: ob_cluster_merge_error
-      expr: max(ob_zone_stat{name="is_merge_error"}) by (ob_cluster_name, ob_cluster_id) == 1
-      for: 1m
-      labels:
-        serverity: page
-      annotations:
-        summary: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} merge error"
-        description: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} merge error"
+      - alert: ob_cluster_merge_error
+        expr: max(ob_zone_stat{name="is_merge_error"}) by (ob_cluster_name, ob_cluster_id) == 1
+        for: 1m
+        labels:
+          serverity: page
+        annotations:
+          summary: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} merge error"
+          description: "{{ $labels.ob_cluster_name }} {{ $labels.ob_cluster_id }} merge error"
 
-    - alert: ob_host_partition_count_over_threshold
-      expr: ob_partition_num > 30000
-      for: 1m
-      labels:
-        serverity: page
-      annotations:
-        summary: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} partition count over threshold "
-        description: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} partition_count = {{ $value }}"
+      - alert: ob_host_partition_count_over_threshold
+        expr: ob_partition_num > 30000
+        for: 1m
+        labels:
+          serverity: page
+        annotations:
+          summary: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} partition count over threshold "
+          description: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} partition_count = {{ $value }}"
 
-    - alert: ob_server_sstable_percent_over_threshold
-      expr: 100 * (ob_disk_total_bytes - ob_disk_free_bytes) / ob_disk_total_bytes > 85
-      for: 1m
-      labels:
-        serverity: page
-      annotations:
-        summary: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} sstable used percent over threshold "
-        description: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} sstable used percent = {{ $value }}"
+      - alert: ob_server_sstable_percent_over_threshold
+        expr: 100 * (ob_disk_total_bytes - ob_disk_free_bytes) / ob_disk_total_bytes > 85
+        for: 1m
+        labels:
+          serverity: page
+        annotations:
+          summary: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} sstable used percent over threshold "
+          description: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} sstable used percent = {{ $value }}"
 
-    - alert: tenant_cpu_percent_over_threshold
-      expr: 100  * sum(ob_sysstat{stat_id="140006"}) by (svr_ip, tenant_name) / sum(ob_sysstat{stat_id="140005"}) by (svr_ip, tenant_name) > 90
-      for: 1m
-      labels:
-        serverity: page
-      annotations:
-        summary: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} {{ $labels.tenant_name }} cpu used percent over threshold "
-        description: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} {{ $labels.tenant_name }} cpu used percent = {{ $value }}"
+      - alert: tenant_cpu_percent_over_threshold
+        expr: 100  * sum(ob_sysstat{stat_id="140006"}) by (svr_ip, tenant_name) / sum(ob_sysstat{stat_id="140005"}) by (svr_ip, tenant_name) > 90
+        for: 1m
+        labels:
+          serverity: page
+        annotations:
+          summary: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} {{ $labels.tenant_name }} cpu used percent over threshold "
+          description: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} {{ $labels.tenant_name }} cpu used percent = {{ $value }}"
 
-    - alert: tenant_active_memstore_percent_over_threshold
-      expr: 100 * sum(ob_sysstat{stat_id="130000"}) by (svr_ip, tenant_name) / sum(ob_sysstat{stat_id="130002"}) by (svr_ip, tenant_name) > 110
-      for: 1m
-      labels:
-        serverity: page
-      annotations:
-        summary: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} {{ $labels.tenant_name }} tenant active memstore used percent over threshold "
-        description: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} {{ $labels.tenant_name }} tenant active memstore used percent = {{ $value }}"
+      - alert: tenant_active_memstore_percent_over_threshold
+        expr: 100 * sum(ob_sysstat{stat_id="130000"}) by (svr_ip, tenant_name) / sum(ob_sysstat{stat_id="130002"}) by (svr_ip, tenant_name) > 110
+        for: 1m
+        labels:
+          serverity: page
+        annotations:
+          summary: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} {{ $labels.tenant_name }} tenant active memstore used percent over threshold "
+          description: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} {{ $labels.tenant_name }} tenant active memstore used percent = {{ $value }}"
 
-    - alert: tenant_memstore_percent_over_threshold
-      expr: 100 * sum(ob_sysstat{stat_id="130001"}) by (svr_ip, tenant_name) / sum(ob_sysstat{stat_id="130004"}) by (svr_ip, tenant_name) > 85
-      for: 1m
-      labels:
-        serverity: page
-      annotations:
-        summary: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} {{ $labels.tenant_name }} tenant memstore used percent over threshold "
-        description: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} {{ $labels.tenant_name }} tenant memstore used percent = {{ $value }}"
+      - alert: tenant_memstore_percent_over_threshold
+        expr: 100 * sum(ob_sysstat{stat_id="130001"}) by (svr_ip, tenant_name) / sum(ob_sysstat{stat_id="130004"}) by (svr_ip, tenant_name) > 85
+        for: 1m
+        labels:
+          serverity: page
+        annotations:
+          summary: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} {{ $labels.tenant_name }} tenant memstore used percent over threshold "
+          description: "{{ $labels.ob_cluster_name }} {{ $labels.obzone }} {{ $labels.svr_ip }} {{ $labels.tenant_name }} tenant memstore used percent = {{ $value }}"

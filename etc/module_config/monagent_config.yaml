@@ -1,8 +1,0 @@
-modules:
-  -
-    module: module.config.notify
-    moduleType: module.config.notify
-    process: monagent
-    config:
-      - process: monagent
-        local: true

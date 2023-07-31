@@ -1,0 +1,13 @@
+configVersion: ""
+configs:
+    - key: agent.http.basic.auth.username
+      value: ocp_agent
+      valueType: string
+    - key: agent.http.basic.auth.password
+      value:
+      valueType: string
+      encrypted: true
+    - key: agent.http.basic.auth.metricAuthEnabled
+      value: true
+      valueType: bool
+      encrypted: false

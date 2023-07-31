@@ -1,0 +1,10 @@
+[Unit]
+Description=start obagent
+[Service]
+Type=forking
+ExecStart=${obagent.home.path}/bin/ob_agentctl start
+ExecStop=${obagent.home.path}/bin/ob_agentctl stop
+ExecReload=${obagent.home.path}/bin/ob_agentctl restart
+RemainAfterExit=yes
+[Install]
+WantedBy=multi-user.target

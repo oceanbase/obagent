@@ -1,0 +1,31 @@
+config_mapper:
+  home_path: obagent.home.path
+  log_path: agent.log.path
+  http_basic_auth_user: agent.http.basic.auth.username
+  http_basic_auth_password: agent.http.basic.auth.password
+  mgragent_http_port: ocp.agent.manager.http.port
+  mgragent_log_level: mgragent.log.level
+  mgragent_log_max_size: mgragent.log.maxsize.mb
+  mgragent_log_max_days: mgragent.log.maxage.days
+  mgragent_log_max_backups: mgragent.log.maxbackups
+  mgragent_log_compress: mgragent.log.compress
+  monagent_http_port: ocp.agent.monitor.http.port
+  monagent_host_ip: monagent.host.ip
+  monitor_password: monagent.ob.monitor.password
+  sql_port: monagent.ob.sql.port
+  rpc_port: monagent.ob.rpc.port
+  cluster_name: monagent.ob.cluster.name
+  cluster_id: monagent.ob.cluster.id
+  zone_name: monagent.ob.zone.name
+  ob_log_path: ob.log.path
+  ob_data_path: ob.data.path
+  ob_install_path: ob.install.path
+  observer_log_path: observer.log.path
+  monagent_log_level: monagent.log.level
+  monagent_log_max_size: monagent.log.maxsize.mb
+  monagent_log_max_days: monagent.log.maxage.days
+  monagent_log_max_backups: monagent.log.maxbackups
+  monagent_log_compress: monagent.log.compress
+  ob_monitor_status: monagent.pipeline.ob.status
+
+  alertmanager_address: monagent.alertmanager.address

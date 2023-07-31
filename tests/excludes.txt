@@ -1,5 +1,8 @@
 github.com/oceanbase/obagent/bindata
 github.com/oceanbase/obagent/tests/mock
-github.com/oceanbase/obagent/api/route
-github.com/oceanbase/obagent/lib/http
+github.com/oceanbase/obagent/api/common
+github.com/oceanbase/obagent/api/mgragent
+github.com/oceanbase/obagent/api/monagent
+github.com/oceanbase/obagent/lib/file
 github.com/oceanbase/obagent/lib/system
+github.com/oceanbase/obagent/monitor/plugins/inputs/oceanbase

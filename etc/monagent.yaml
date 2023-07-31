@@ -1,18 +1,8 @@
-log:
-  level: debug
-  filename: log/monagent.log
-  maxsize: 30
-  maxage: 7
-  maxbackups: 10
-  localtime: true
-  compress: true
-
 server:
-  address: "0.0.0.0:8088"
-  adminAddress: "0.0.0.0:8089"
-  runDir: run
+  address: 0.0.0.0:${ocp.agent.monitor.http.port}
+  runDir: ${obagent.home.path}/run
 
-cryptoMethod: plain
-cryptoPath: conf/.config_secret.key
-modulePath: conf/module_config
-propertiesPath: conf/config_properties
+cryptoMethod: aes
+cryptoPath: ${obagent.home.path}/conf/.config_secret.key
+modulePath: ${obagent.home.path}/conf/module_config
+propertiesPath: ${obagent.home.path}/conf/config_properties

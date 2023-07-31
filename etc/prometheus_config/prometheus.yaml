@@ -10,8 +10,8 @@ scrape_configs:
     metrics_path: /metrics
     scheme: http
     static_configs:
-    - targets:
-      - 'localhost:9090'
+      - targets:
+          - 'localhost:9090'
   - job_name: node
     basic_auth:
       username: {http_basic_auth_user}
@@ -20,7 +20,7 @@ scrape_configs:
     scheme: http
     static_configs:
       - targets:
-        - {target}
+          - {target}
   - job_name: ob_basic
     basic_auth:
       username: {http_basic_auth_user}
@@ -29,7 +29,7 @@ scrape_configs:
     scheme: http
     static_configs:
       - targets:
-        - {target}
+          - {target}
   - job_name: ob_extra
     basic_auth:
       username: {http_basic_auth_user}
@@ -38,7 +38,7 @@ scrape_configs:
     scheme: http
     static_configs:
       - targets:
-        - {target}
+          - {target}
   - job_name: agent
     basic_auth:
       username: {http_basic_auth_user}
@@ -47,4 +47,4 @@ scrape_configs:
     scheme: http
     static_configs:
       - targets:
-        - {target}
+          - {target}

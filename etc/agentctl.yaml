@@ -1,0 +1,23 @@
+log:
+  level: info
+  filename: ${obagent.home.path}/log/agentctl.log
+  maxsize: 30
+  maxage: 30
+  maxbackups: 10
+  localtime: true
+  compress: true
+
+runDir: ${obagent.home.path}/run
+confDir: ${obagent.home.path}/conf
+logDir: ${obagent.home.path}/log
+backupDir: ${obagent.home.path}/backup
+pkgStoreDir: ${obagent.home.path}/pkg_store
+taskStoreDir: ${obagent.home.path}/task_store
+agentPkgName: obagent
+pkgExt: rpm
+
+sdkConfig:
+  configPropertiesDir: ${obagent.home.path}/conf/config_properties
+  moduleConfigDir: ${obagent.home.path}/conf/module_config
+  cryptoPath: ${obagent.home.path}/conf/.config_secret.key
+  cryptoMethod: aes

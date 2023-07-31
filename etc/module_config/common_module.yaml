@@ -1,0 +1,32 @@
+modules:
+    -
+      module: mgragent.config.meta
+      moduleType: config.meta
+      process: ob_mgragent
+      config:
+          maxbackups: ${config.version.maxbackups}
+    -
+      module: mgragent.proxy.config
+      moduleType: proxy.config
+      process: ob_mgragent
+      config:
+          proxyAddress: ${ocp.agent.http.socks.proxy.address}
+          proxyEnabled: ${ocp.agent.http.socks.proxy.enabled}
+    -
+      module: monagent.config.meta
+      moduleType: config.meta
+      process: ob_monagent
+      config:
+          maxbackups: ${config.version.maxbackups}
+    -
+      module: mgragent.stat.config
+      moduleType: stat.config
+      process: ob_mgragent
+      config:
+          host_ip: ${monagent.host.ip}
+    -
+      module: monagent.stat.config
+      moduleType: stat.config
+      process: ob_monagent
+      config:
+          host_ip: ${monagent.host.ip}

@@ -1,0 +1,72 @@
+logTailerInput: &logTailerInput
+  plugin: logTailerInput
+  config:
+    timeout: 60s
+    pluginConfig:
+      tailConfigs:
+        -   logDir: /var/log
+            logFileName: kern
+            processLogInterval: 500ms
+            logSourceType: kern
+            logAnalyzerType: host_light
+      recoveryConfig:
+          enabled: true
+          triggerThreshold: 10000
+
+logTransformer: &logTransformer
+  plugin: logTransformer
+  config:
+    timeout: 10s
+    pluginConfig:
+
+retagProcessor: &retagProcessor
+  plugin: retagProcessor
+  config:
+    timeout: 10s
+    pluginConfig:
+      newTags:
+        ip: ${monagent.host.ip}
+        obClusterId: ${monagent.ob.cluster.id}
+        obClusterName: ${monagent.ob.cluster.name}
+
+esOutput: &esOutput
+  plugin: esOutput
+  config:
+    timeout: 10s
+    pluginConfig:
+      clientAddresses: ${es.client.addresses}
+      auth:
+        username: ${es.client.auth.username}
+        password: ${es.client.auth.password}
+      indexNamePattern: host_log_%Y%m%d
+      batchSizeInBytes: 1048576
+      maxBatchWait: 1s
+      docMap:
+        timestamp: timestamp
+        timestampPrecision: 1us
+        name: file
+        tags:
+          app: app
+        fields:
+          tags: tags
+          content: content
+
+modules:
+  - module: monitor.host.log
+    moduleType: monagent.pipeline
+    process: ob_monagent
+    config:
+      name: host.log
+      status: ${monagent.pipeline.ob.log.status}
+      pipelines:
+        - name: host_log_to_es
+          config:
+            scheduleStrategy: bySource
+          structure:
+            inputs:
+              - <<: *logTailerInput
+            processors:
+              - <<: *retagProcessor
+              - <<: *logTransformer
+            output:
+              <<: *esOutput

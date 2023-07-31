@@ -8,15 +8,15 @@ errorLogInput: &errorLogInput
       logServiceConfig:
         rootservice:
           logConfig:
-            logDir: ${monagent.ob.install.path}/log
+            logDir: ${ob.install.path}/log
             logFileName: rootservice.log.wf
         election:
           logConfig:
-            logDir: ${monagent.ob.install.path}/log
+            logDir: ${ob.install.path}/log
             logFileName: election.log.wf
         observer:
           logConfig:
-            logDir: ${monagent.ob.install.path}/log
+            logDir: ${ob.install.path}/log
             logFileName: observer.log.wf
 
 
@@ -43,12 +43,12 @@ alertmanagerOutput: &alertmanagerOutput
       retryTimes: 3
 
 modules:
-  - module: monitor.ob.log
+  - module: monitor.ob.err.log
     moduleType: monagent.pipeline
-    process: monagent
+    process: ob_monagent
     config:
-      name: monitor.ob.log
-      status: ${monagent.pipeline.ob.log.status}
+      name: monitor.ob.err.log
+      status: ${monagent.pipeline.ob.alertmanager.status}
       pipelines:
         - name: node_info
           config:

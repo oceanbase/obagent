@@ -1,0 +1,28 @@
+modules:
+    -
+      module: ob.logcleaner
+      moduleType: ob.logcleaner
+      process: ob_mgragent
+      config:
+        runInterval: ${ob.logcleaner.run.internal}
+        enabled: ${ob.logcleaner.enabled}
+        cleanerConfig:
+          logCleaners:
+            - logName: ob_log
+              path: ${ob.install.path}/log
+              diskThreshold: ${ob.logcleaner.ob_log.disk.threshold}
+              rules:
+                - fileRegex: '([a-z]+.)?[a-z]+.log.[0-9]+'
+                  retentionDays: ${ob.logcleaner.ob_log.rule0.retention.days}
+                  keepPercentage: ${ob.logcleaner.ob_log.rule0.keep.percentage}
+                - fileRegex: '([a-z]+.)?[a-z]+.log.wf.[0-9]+'
+                  retentionDays: ${ob.logcleaner.ob_log.rule1.retention.days}
+                  keepPercentage: ${ob.logcleaner.ob_log.rule1.keep.percentage}
+            - logName: core_log
+              path: ${ob.install.path}
+              diskThreshold: ${ob.logcleaner.core_log.disk.threshold}
+              rules:
+                - fileRegex: 'core.[0-9]+'
+                  retentionDays: ${ob.logcleaner.core_log.rule0.retention.days}
+                  keepPercentage: ${ob.logcleaner.core_log.rule0.keep.percentage}
+

@@ -1,0 +1,32 @@
+configVersion: ""
+configs:
+    - key: ob.logcleaner.enabled
+      value: false
+      valueType: bool
+    - key: ob.logcleaner.run.internal
+      value: 5m
+      valueType: string
+    - key: ob.logcleaner.ob_log.disk.threshold
+      value: 80
+      valueType: int64
+    - key: ob.logcleaner.ob_log.rule0.retention.days
+      value: 8
+      valueType: int64
+    - key: ob.logcleaner.ob_log.rule0.keep.percentage
+      value: 60
+      valueType: int64
+    - key: ob.logcleaner.ob_log.rule1.retention.days
+      value: 30
+      valueType: int64
+    - key: ob.logcleaner.ob_log.rule1.keep.percentage
+      value: 80
+      valueType: int64
+    - key: ob.logcleaner.core_log.disk.threshold
+      value: 80
+      valueType: int64
+    - key: ob.logcleaner.core_log.rule0.retention.days
+      value: 8
+      valueType: int64
+    - key: ob.logcleaner.core_log.rule0.keep.percentage
+      value: 60
+      valueType: int64

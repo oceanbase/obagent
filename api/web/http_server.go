@@ -1,15 +1,3 @@
-// Copyright (c) 2021 OceanBase
-// obagent is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//
-// http://license.coscl.org.cn/MulanPSL2
-//
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-// EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-// MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 package web
 
 import (
@@ -23,9 +11,8 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/oceanbase/obagent/api/response"
-	"github.com/oceanbase/obagent/api/route"
-	server2 "github.com/oceanbase/obagent/api/server"
+	"github.com/oceanbase/obagent/api/common"
+	http2 "github.com/oceanbase/obagent/lib/http"
 )
 
 type HttpServer struct {
@@ -34,22 +21,24 @@ type HttpServer struct {
 	// current session count, concurrent safely
 	Counter *Counter
 	// http routers
-	Router *gin.Engine
+	Router      *gin.Engine
+	LocalRouter *gin.Engine
 	// address
 	Address string
 	// socket
 	Socket string
 	// http server, call its Run, Shutdown methods
-	Server *http.Server
+	Server      *http.Server
+	LocalServer *http.Server
 	// stop the http.Server by calling cancel method
 	Cancel context.CancelFunc
 	// basic authorizer
-	BasicAuthorizer Authorizer
+	BasicAuthorizer common.Authorizer
 }
 
 func (server *HttpServer) AuthorizeMiddleware(c *gin.Context) {
-	ctx := route.NewContextWithTraceId(c)
-	ctxlog := log.WithContext(ctx)
+	ctx := common.NewContextWithTraceId(c)
+	ctxlog := log.WithContext(ctx).WithField("url", c.Request.URL)
 	if server.BasicAuthorizer == nil {
 		ctxlog.Warnf("basic auth is nil, please check the initial process.")
 		c.Next()
@@ -60,7 +49,7 @@ func (server *HttpServer) AuthorizeMiddleware(c *gin.Context) {
 	if err != nil {
 		ctxlog.Errorf("basic auth Authorize failed, err:%+v", err)
 		c.Abort()
-		c.JSON(http.StatusUnauthorized, response.BuildResponse(nil, err))
+		c.JSON(http.StatusUnauthorized, http2.BuildResponse(nil, err))
 		return
 	}
 	c.Next()
@@ -81,13 +70,13 @@ func (server *HttpServer) UseBasicAuth() {
 	)
 }
 
-// Run start a httpServer
+// run start a httpServer
 // when ctx is cancelled, call shutdown to stop the httpServer
 func (server *HttpServer) Run(ctx context.Context) {
 
 	server.Server.Handler = server.Router
 	if server.Address != "" {
-		tcpListener, err := server2.NewTcpListener(server.Address)
+		tcpListener, err := http2.NewTcpListener(server.Address)
 		if err != nil {
 			log.WithError(err).
 				Errorf("create tcp listener on address '%s' failed %v", server.Address, err)
@@ -101,14 +90,19 @@ func (server *HttpServer) Run(ctx context.Context) {
 		}()
 	}
 	if server.Socket != "" {
-		socketListener, err := server2.NewSocketListener(server.Socket)
+		socketListener, err := http2.NewSocketListener(server.Socket)
 		if err != nil {
 			log.WithError(err).
 				Errorf("create socket listener on file '%s' failed %v", server.Socket, err)
 			return
 		}
 		go func() {
-			if err = server.Server.Serve(socketListener); err != nil {
+			server.LocalServer = &http.Server{
+				Handler:      server.LocalRouter,
+				ReadTimeout:  5 * time.Minute,
+				WriteTimeout: 5 * time.Minute,
+			}
+			if err = server.LocalServer.Serve(socketListener); err != nil {
 				log.WithError(err).
 					Info("socket server exited")
 			}
@@ -147,7 +141,7 @@ func (server *HttpServer) Shutdown(ctx context.Context) error {
 func (server *HttpServer) counterPreHandlerFunc(c *gin.Context) {
 	if atomic.LoadInt32(&(server.Stopping)) == 1 {
 		c.Abort()
-		c.JSON(http.StatusServiceUnavailable, response.BuildResponse("server is shutdowning now.", nil))
+		c.JSON(http.StatusServiceUnavailable, http2.BuildResponse("server is shutdowning now.", nil))
 		return
 	}
 

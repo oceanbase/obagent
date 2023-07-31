@@ -1,0 +1,32 @@
+configVersion: ""
+configs:
+    - key: monagent.log.level
+      value: info
+      valueType: string
+    - key: monagent.log.maxsize.mb
+      value: 200
+      valueType: int64
+    - key: monagent.log.maxage.days
+      value: 30
+      valueType: int64
+    - key: monagent.log.maxbackups
+      value: 15
+      valueType: int64
+    - key: monagent.log.compress
+      value: true
+      valueType: bool
+    - key: mgragent.log.level
+      value: info
+      valueType: string
+    - key: mgragent.log.maxsize.mb
+      value: 200
+      valueType: int64
+    - key: mgragent.log.maxage.days
+      value: 30
+      valueType: int64
+    - key: mgragent.log.maxbackups
+      value: 15
+      valueType: int64
+    - key: mgragent.log.compress
+      value: true
+      valueType: bool

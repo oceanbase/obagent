@@ -1,15 +1,3 @@
-// Copyright (c) 2021 OceanBase
-// obagent is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//
-// http://license.coscl.org.cn/MulanPSL2
-//
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-// EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-// MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 package sdk
 
 import (
@@ -19,12 +7,14 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/oceanbase/obagent/config"
+	agentlog "github.com/oceanbase/obagent/log"
+	"github.com/oceanbase/obagent/stat"
 )
 
-//RegisterConfigCallbacks To load the business callback module,
-//the business needs to provide a callback function,
-//and the configuration can be obtained when the business is initialized or changed.
-func RegisterConfigCallbacks() error {
+// registerCallbacks To load the business callback module,
+// the business needs to provide a callback function,
+// and the configuration can be obtained when the business is initialized or changed.
+func registerCallbacks(ctx context.Context) error {
 	// register config module callbacks
 	err := config.RegisterConfigCallback(
 		config.NotifyProcessConfigModuleType,
@@ -40,7 +30,38 @@ func RegisterConfigCallbacks() error {
 		return err
 	}
 
+	err = config.RegisterConfigCallback(
+		config.ConfigMetaModuleType,
+		func() interface{} {
+			return config.ConfigMetaBackup{}
+		},
+		configNotifyModuleConfigCallback,
+		configNotifyModuleConfigCallback,
+	)
+	if err != nil {
+		return err
+	}
+
+	if err := config.RegisterConfigCallback(
+		config.StatConfigModuleType,
+		func() interface{} {
+			return stat.StatConfig{}
+		},
+		setStatConfig,
+		setStatConfig,
+	); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func configNotifyModuleConfigCallback(ctx context.Context, moduleConf interface{}) error {
+	conf, ok := moduleConf.(config.ConfigMetaBackup)
+	if !ok {
+		return errors.Errorf("module %s conf %s is not NotifyAddress", config.NotifyProcessConfigModuleType, reflect.TypeOf(moduleConf))
+	}
+	return config.SetConfigMetaModuleConfigNotify(ctx, conf)
 }
 
 func processNotifyModuleConfigCallback(ctx context.Context, moduleConf interface{}) error {
@@ -51,5 +72,23 @@ func processNotifyModuleConfigCallback(ctx context.Context, moduleConf interface
 	for _, conf := range confs {
 		config.SetProcessModuleConfigNotifyAddress(conf)
 	}
+	return nil
+}
+
+func setLogger(ctx context.Context, moduleConf interface{}) error {
+	logconf, ok := moduleConf.(agentlog.LoggerConfig)
+	if !ok {
+		return errors.Errorf("conf is not agentlog.LoggerConfig")
+	}
+	agentlog.InitLogger(logconf)
+	return nil
+}
+
+func setStatConfig(ctx context.Context, moduleConf interface{}) error {
+	conf, ok := moduleConf.(stat.StatConfig)
+	if !ok {
+		return errors.Errorf("conf is not stat.StatConfig")
+	}
+	stat.SetStatConfig(ctx, conf)
 	return nil
 }

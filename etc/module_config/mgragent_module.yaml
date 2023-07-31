@@ -1,0 +1,21 @@
+modules:
+    -
+      module: mgragent.basic.auth
+      moduleType: mgragent.basic.auth
+      process: ob_mgragent
+      config:
+        auth: basic
+        metricAuthEnabled: ${agent.http.basic.auth.metricAuthEnabled}
+        username: ${agent.http.basic.auth.username}
+        password: ${agent.http.basic.auth.password}
+    -
+      module: module.config.notify
+      moduleType: module.config.notify
+      process: ob_agentctl
+      config:
+          - process: ob_mgragent
+            notifyAddress: api/v1/module/config/notify
+          - process: ob_monagent
+            notifyAddress: api/v1/module/config/notify
+          - process: ob_agentctl
+            local: true

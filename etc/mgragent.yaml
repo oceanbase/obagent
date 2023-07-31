@@ -1,0 +1,12 @@
+install:
+  path: ${obagent.home.path}
+server:
+  address: 0.0.0.0:${ocp.agent.manager.http.port}
+  runDir: ${obagent.home.path}/run
+sdkConfig:
+  configPropertiesDir: ${obagent.home.path}/conf/config_properties
+  moduleConfigDir: ${obagent.home.path}/conf/module_config
+  cryptoPath: ${obagent.home.path}/conf/.config_secret.key
+  cryptoMethod: aes
+shellf:
+  template: ${obagent.home.path}/conf/shell_templates/shell_template.yaml

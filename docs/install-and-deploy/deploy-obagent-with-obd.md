@@ -24,7 +24,8 @@ obagent:
 
 > **注意**：`servers` 字段必须与 oceanbase-ce 的 `servers` 字段一致。
 
-详细信息，请参考 [配置文件](https://github.com/oceanbase/obdeploy/blob/master/example/obagent/distributed-with-obproxy-and-obagent-example.yaml)。
+详细信息，请参考 [配置文件](https://github.com/oceanbase/obdeploy/blob/master/example/obagent/distributed-with-
+obproxy-and-obagent-example.yaml)。
 
 ## 单独部署 OBAgent
 

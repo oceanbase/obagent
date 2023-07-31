@@ -1,15 +1,3 @@
-// Copyright (c) 2021 OceanBase
-// obagent is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//
-// http://license.coscl.org.cn/MulanPSL2
-//
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-// EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-// MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 package crypto
 
 import (
@@ -59,7 +47,7 @@ func PKCS7UnPadding(origData []byte) []byte {
 func AesCBCEncrypt(rawData, key []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	blockSize := block.BlockSize()
@@ -67,7 +55,7 @@ func AesCBCEncrypt(rawData, key []byte) ([]byte, error) {
 	cipherText := make([]byte, blockSize+len(rawData))
 	iv := cipherText[:blockSize]
 	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	mode := cipher.NewCBCEncrypter(block, iv)
@@ -79,19 +67,19 @@ func AesCBCEncrypt(rawData, key []byte) ([]byte, error) {
 func AesCBCDecrypt(encryptData, key []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	blockSize := block.BlockSize()
 
 	if len(encryptData) < blockSize {
-		panic("ciphertext too short")
+		return nil, errors.New("ciphertext too short")
 	}
 	iv := encryptData[:blockSize]
 	encryptData = encryptData[blockSize:]
 
 	if len(encryptData)%blockSize != 0 {
-		panic("ciphertext is not a multiple of the block size")
+		return nil, errors.New("ciphertext is not a multiple of the block size")
 	}
 
 	mode := cipher.NewCBCDecrypter(block, iv)

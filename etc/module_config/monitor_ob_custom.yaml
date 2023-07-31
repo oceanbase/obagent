@@ -1,0 +1,44 @@
+dbConnectivityInput: &dbConnectivityInput
+  plugin: dbConnectivityInput
+  config:
+    timeout: 20s
+    pluginConfig:
+      timeout: 10s
+      targets:
+        oceanbase: ${monagent.ob.monitor.user}:${monagent.ob.monitor.password}@tcp(127.0.0.1:${monagent.ob.sql.port})/oceanbase?interpolateParams=true
+      collect_interval: ${monagent.second.metric.cache.update.interval}
+
+processInput: &processInput
+  plugin: processInput
+  config:
+    timeout: 20s
+    pluginConfig:
+      processNames: [observer]
+      collect_interval: ${monagent.second.metric.cache.update.interval}
+
+prometheusExporter: &prometheusExporter
+  plugin: prometheusExporter
+  config:
+    timeout: 10s
+    pluginConfig:
+      formatType: fmtText
+      exposeUrl: /metrics/node/ob
+
+modules:
+  - module: monitor.ob.custom
+    moduleType: monagent.pipeline
+    process: ob_monagent
+    config:
+      name: ob.custom
+      status: ${monagent.pipeline.ob.status}
+      pipelines:
+        - name: custom_info
+          config:
+            scheduleStrategy: bySource
+          structure:
+            inputs:
+              - <<: *dbConnectivityInput
+              - <<: *processInput
+            processors:
+            exporter:
+              <<: *prometheusExporter

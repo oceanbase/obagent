@@ -1,15 +1,3 @@
-// Copyright (c) 2021 OceanBase
-// obagent is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//
-// http://license.coscl.org.cn/MulanPSL2
-//
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-// EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-// MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 package config
 
 import (
@@ -19,13 +7,29 @@ import (
 )
 
 const (
-	MonitorPipelineModuleType ModuleType = "monagent.pipeline"
+	ManagerAgentBasicAuthConfigModuleType ModuleType = "mgragent.basic.auth"
+	MonitorPipelineModuleType             ModuleType = "monagent.pipeline"
+	MonitorServerBasicAuthModuleType      ModuleType = "monagent.server.basic.auth"
+	ProxyConfigModuleType                 ModuleType = "proxy.config"
+	NotifyProcessConfigModuleType         ModuleType = "module.config.notify"
+	OBLogcleanerModuleType                ModuleType = "ob.logcleaner"
+	MonitorLogConfigModuleType            ModuleType = "monagent.log.config"
+	ManagerLogConfigModuleType            ModuleType = "mgragent.log.config"
+	ManagerLogQuerierModuleType           ModuleType = "mgragent.logquerier"
+	ConfigMetaModuleType                  ModuleType = "config.meta"
+	StatConfigModuleType                  ModuleType = "stat.config"
+)
 
-	MonitorServerBasicAuthModuleType ModuleType = "monagent.server.basic.auth"
-
-	MonitorAdminBasicAuthModuleType ModuleType = "monagent.admin.basic.auth"
-
-	NotifyProcessConfigModuleType ModuleType = "module.config.notify"
+const (
+	ManagerAgentBasicAuthConfigModule = "mgragent.basic.auth"
+	ManagerAgentProxyConfigModule     = "mgragent.proxy.config"
+	NotifyProcessConfigModule         = "module.config.notify"
+	OBLogcleanerModule                = "ob.logcleaner"
+	MonitorLogConfigModule            = "monagent.log.config"
+	ManagerLogConfigModule            = "mgragent.log.config"
+	ManagerLogQuerierModule           = "mgragent.logquerier"
+	ManagerAgentConfigMetaModule      = "mgragent.config.meta"
+	MonitorAgentConfigMetaModule      = "monagent.config.meta"
 )
 
 var (
@@ -62,7 +66,7 @@ func GetFinalModuleConfig(module string) (*ModuleConfig, error) {
 	}
 	finalConf, err := getFinalModuleConfig(module, sample.Config, nil)
 	if err != nil {
-		return nil, errors.Errorf("get module %s config err:%+v", module, err)
+		return nil, errors.Errorf("get module %s config err:%s", module, err)
 	}
 	sample.Config = finalConf
 	return &sample, nil

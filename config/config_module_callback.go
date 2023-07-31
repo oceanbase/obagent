@@ -1,15 +1,3 @@
-// Copyright (c) 2021 OceanBase
-// obagent is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//
-// http://license.coscl.org.cn/MulanPSL2
-//
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-// EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-// MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 package config
 
 import (
@@ -33,7 +21,7 @@ func init() {
 	modules = make(map[string]ModuleType, 32)
 }
 
-// Callback call Callback when revive a request
+// Callback call Callback when receive a request
 type Callback func(ctx context.Context, nconfig *NotifyModuleConfig) error
 
 // ModuleCallback register a ModuleCallback, Callback will call it
@@ -80,9 +68,9 @@ func getModuleTypeCallback(moduleType ModuleType) (callback *ConfigCallback, exi
 }
 
 func RegisterModule(module string, moduleType ModuleType) error {
-	existModyleType, ex := modules[module]
-	if ex && existModyleType != moduleType {
-		return errors.Errorf("module %s 's module type %s is already set as %s", module, moduleType, existModyleType)
+	existModuleType, ex := modules[module]
+	if ex && existModuleType != moduleType {
+		return errors.Errorf("module %s 's module type %s is already set as %s", module, moduleType, existModuleType)
 	}
 	modules[module] = moduleType
 	log.Debugf("register module %s, moduleType %s", module, moduleType)
@@ -98,7 +86,7 @@ func RegisterConfigCallback(moduleType ModuleType,
 	log.Debugf("register moduleType %s config callback start", moduleType)
 
 	if _, ex := getModuleTypeCallback(moduleType); ex {
-		return errors.Errorf("module %s callback has been registried!", moduleType)
+		return errors.Errorf("moduleType %s callback has been registred!", moduleType)
 	}
 
 	initConfigCallback := func(ctx context.Context, module string) error {
@@ -113,12 +101,12 @@ func RegisterConfigCallback(moduleType ModuleType,
 
 		moduleConf, err := getFinalModuleConfig(module, moduleConfigSample.Config, nil)
 		if err != nil {
-			return errors.Errorf("get module %s final config err:%+v", module, err)
+			return errors.Errorf("get module %s final config err:%s", module, err)
 		}
 
 		err = initConfig(ctx, moduleConf)
 		if err != nil {
-			return errors.Errorf("init module %s conf err:%+v", module, err)
+			return errors.Errorf("init module %s conf err:%s", module, err)
 		}
 		return nil
 	}
@@ -127,7 +115,7 @@ func RegisterConfigCallback(moduleType ModuleType,
 		log.WithContext(ctx).Infof("notify module %s config, process:%s", econfig.Module, econfig.Process)
 		err := receiveUpdatedConfig(ctx, econfig.Config)
 		if err != nil {
-			return errors.Errorf("notify module %s config, process %s, err:%+v", econfig.Module, econfig.Process, err)
+			return errors.Errorf("notify module %s config, process %s, err:%s", econfig.Module, econfig.Process, err)
 		}
 		return nil
 	}

@@ -1,15 +1,3 @@
-// Copyright (c) 2021 OceanBase
-// obagent is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//
-// http://license.coscl.org.cn/MulanPSL2
-//
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-// EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-// MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 package config
 
 import (
@@ -34,7 +22,7 @@ func TestSaveConfigSnapshot(t *testing.T) {
 	t.Run("save config snapshot with foo (path not exist before save)", func(t *testing.T) {
 		os.RemoveAll(snapshotPath)
 
-		err := snapshotForConfigVersion(configVersion)
+		err := snapshotForConfigVersion(context.Background(), configVersion)
 		Convey("saveConfigSnapshot", t, func() {
 			So(err, ShouldBeNil)
 		})
@@ -45,7 +33,7 @@ func TestSaveConfigSnapshot(t *testing.T) {
 			So(version.ConfigVersion, ShouldEqual, configVersion)
 		})
 
-		tmpModuleConfigs, err := decodeModuleConfigGroups(filepath.Join(snapshotPath, "module_config"))
+		tmpModuleConfigs, err := decodeModuleConfigGroups(context.Background(), filepath.Join(snapshotPath, "module_config"))
 		Convey("DecodeModuleConfig", t, func() {
 			So(err, ShouldBeNil)
 			assert.NotSame(t, mainModuleConfig.allModuleConfigs, tmpModuleConfigs.allModuleConfigs)
@@ -76,7 +64,7 @@ func TestSaveConfigSnapshot(t *testing.T) {
 	})
 
 	t.Run("save config snapshot with foo (path already exist before save)", func(t *testing.T) {
-		err := snapshotForConfigVersion(configVersion)
+		err := snapshotForConfigVersion(context.Background(), configVersion)
 		Convey("saveConfigSnapshot", t, func() {
 			So(err, ShouldBeNil)
 		})
@@ -94,14 +82,14 @@ func TestSaveConfigProperties(t *testing.T) {
 			"foo.bar.duration": "100h",
 			"key-not-exist":    "xxx",
 		}
-		configVersion, err := saveIncrementalConfig(diffKVs)
+		configVersion, err := saveIncrementalConfig(context.Background(), diffKVs)
 		Convey("saveIncrementalConfig", t, func() {
 			So(err, ShouldBeNil)
 		})
 		log.Infof("configVersion %s", configVersion)
 
 		properties := GetConfigPropertiesKeyValues()
-		Convey("GetConfigProtertiesKeyValues", t, func() {
+		Convey("GetConfigPropertiesKeyValues", t, func() {
 			So(properties["foo.foo"], ShouldEqual, "diff-foo")
 			So(properties["foo.bar.duration"], ShouldEqual, "100h")
 			_, ex := properties["key-not-exist"]
@@ -110,13 +98,13 @@ func TestSaveConfigProperties(t *testing.T) {
 	})
 
 	t.Run("reload config", func(t *testing.T) {
-		err := ReloadConfigFromFiles()
+		err := ReloadConfigFromFiles(context.Background())
 		Convey("ReloadConfigFromFiles", t, func() {
 			So(err, ShouldBeNil)
 		})
 
 		properties := GetConfigPropertiesKeyValues()
-		Convey("GetConfigProtertiesKeyValues", t, func() {
+		Convey("GetConfigPropertiesKeyValues", t, func() {
 			So(properties["foo.foo"], ShouldEqual, "diff-foo")
 			So(properties["foo.bar.duration"], ShouldEqual, "100h")
 			_, ex := properties["key-not-exist"]
@@ -140,6 +128,7 @@ func TestGetUpdatedConfigs(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(len(updatedModules), ShouldEqual, 1)
 			So(updatedModules[0].Module, ShouldEqual, testFooModule)
+			So(updatedModules[0].Process, ShouldEqual, ProcessManagerAgent)
 			So(reflect.DeepEqual(updatedModules[0].UpdatedKeyValues, map[string]interface{}{
 				"foo.foo":          "diff-foo",
 				"foo.bar.duration": "100h",
@@ -162,6 +151,7 @@ func TestVerifyAndSaveConfig(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(len(result.UpdatedConfigs), ShouldEqual, 1)
 			So(result.UpdatedConfigs[0].Module, ShouldEqual, testFooModule)
+			So(result.UpdatedConfigs[0].Process, ShouldEqual, ProcessManagerAgent)
 			So(reflect.DeepEqual(result.UpdatedConfigs[0].UpdatedKeyValues, map[string]interface{}{
 				"foo.foo":          "diff-foo",
 				"foo.bar.duration": "100h",
@@ -169,7 +159,7 @@ func TestVerifyAndSaveConfig(t *testing.T) {
 		})
 
 		properties := GetConfigPropertiesKeyValues()
-		Convey("GetConfigProtertiesKeyValues", t, func() {
+		Convey("GetConfigPropertiesKeyValues", t, func() {
 			So(properties["foo.foo"], ShouldEqual, "diff-foo")
 			So(properties["foo.bar.duration"], ShouldEqual, "100h")
 			_, ex := properties["key-not-exist"]
@@ -217,15 +207,39 @@ func TestReloadConfigFromFiles_Fail(t *testing.T) {
 	t.Run("reload config from no exist file", func(t *testing.T) {
 		noExistPath := filepath.Join(tempDir, "no-exist-path")
 		mainModuleConfig.moduleConfigDir = noExistPath
-		err := ReloadConfigFromFiles()
+		err := ReloadConfigFromFiles(context.Background())
 		Convey("ReloadConfigFromFiles", t, func() {
 			So(err, ShouldNotBeNil)
 		})
 
 		mainConfigProperties.configPropertiesDir = noExistPath
-		err = ReloadConfigFromFiles()
+		err = ReloadConfigFromFiles(context.Background())
 		Convey("ReloadConfigFromFiles", t, func() {
 			So(err, ShouldNotBeNil)
+		})
+	})
+}
+
+func TestValidateConfig(t *testing.T) {
+	_init(t)
+	defer cleanup()
+
+	t.Run("validate config success", func(t *testing.T) {
+		err := ValidateConfigPairs(context.Background(), []string{"foo.foo=foo_value", "foo.bar.bar=3306"})
+		Convey("ValidateConfigPairs", t, func() {
+			So(err, ShouldBeNil)
+		})
+	})
+
+	t.Run("validate config failed", func(t *testing.T) {
+		err := ValidateConfigPairs(context.Background(), []string{"foo.foo=wrong-value"})
+		Convey("ValidateConfigPairs with wrong value", t, func() {
+			So(err, ShouldNotBeNil)
+		})
+
+		err2 := ValidateConfigPairs(context.Background(), []string{"key-not-exist=foo"})
+		Convey("ValidateConfigPairs with wrong value", t, func() {
+			So(err2, ShouldNotBeNil)
 		})
 	})
 }

@@ -1,15 +1,3 @@
-// Copyright (c) 2021 OceanBase
-// obagent is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//
-// http://license.coscl.org.cn/MulanPSL2
-//
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-// EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-// MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 package config
 
 import (
@@ -72,7 +60,7 @@ configs:
     -
       module: foo
       moduleType: fooType
-      process: ocp_mgragent
+      process: ob_mgragent
       config:
         foo: ${foo.foo}
         fooNoDefine: ${foo.not.defined}
@@ -120,8 +108,8 @@ func _init(t *testing.T) string {
 			Valid:        nil,
 		})
 
-	croptoErr := InitCrypto("", crypto.PLAIN)
-	assert.Nil(t, croptoErr)
+	cryptoErr := InitCrypto("", crypto.PLAIN)
+	assert.Nil(t, cryptoErr)
 
 	tempDir := os.TempDir()
 
@@ -137,17 +125,26 @@ func _init(t *testing.T) string {
 	err = ioutil.WriteFile(filepath.Join(configPropertiesDir, "foo.yaml"), []byte(fooKVYaml), 0755)
 	assert.Nil(t, err)
 
-	err = InitModuleConfigs(moduleConfigDir)
+	err = InitModuleConfigs(context.Background(), moduleConfigDir)
 	assert.Nil(t, err)
-	err = InitConfigProperties(configPropertiesDir)
+	err = InitConfigProperties(context.Background(), configPropertiesDir)
 	assert.Nil(t, err)
 
 	agentlog.InitLogger(agentlog.LoggerConfig{
-		Output: os.Stdout,
-		Level:  "debug",
+		Level:      "debug",
+		Filename:   "../tests/test.log",
+		MaxSize:    10, // 10M
+		MaxAge:     3,  // 3days
+		MaxBackups: 3,
+		LocalTime:  false,
+		Compress:   false,
 	})
 
+	CurProcess = ProcessManagerAgent
+
 	registerFooCallback()
+
+	SetProcessModuleConfigNotifyAddress(ProcessConfigNotifyAddress{Process: ProcessManagerAgent})
 
 	return tempDir
 }
@@ -175,7 +172,7 @@ func registerFooCallback() {
 			}
 			log.WithField("module", foo).Info("init foo config")
 			fooServer.Foo = foo
-			log.Infof("init module %s config sucessfully", testFooModule)
+			log.Infof("init module %s config successfully", testFooModule)
 			return nil
 		},
 		// notify updated config
@@ -187,7 +184,7 @@ func registerFooCallback() {
 			}
 			log.WithField("module", foo).Info("update foo config")
 			fooServer.Foo = foo
-			log.Infof("update module %s config sucessfully", testFooModule)
+			log.Infof("update module %s config successfully", testFooModule)
 			return nil
 		},
 	)
@@ -210,6 +207,17 @@ func TestModuleConfigCallback_Success(t *testing.T) {
 			So(fooServer.Foo.Foo, ShouldEqual, "foo_value")
 			So(fooServer.Foo.Bar.Bar, ShouldEqual, 3306)
 			So(fooServer.Foo.Bar.Duration, ShouldEqual, "10s")
+		})
+
+		err = callback.NotifyConfigCallback(context.Background(), &NotifyModuleConfig{
+			Process: ProcessManagerAgent,
+			Module:  testFooModule,
+			Config:  &Foo{Foo: "foofoo", Bar: Bar{Bar: 2883}},
+		})
+		Convey("NotifyConfigCallback", t, func() {
+			So(err, ShouldBeNil)
+			So(fooServer.Foo.Foo, ShouldEqual, "foofoo")
+			So(fooServer.Foo.Bar.Bar, ShouldEqual, 2883)
 		})
 	})
 }

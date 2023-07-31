@@ -1,14 +1,9 @@
-// Copyright (c) 2021 OceanBase
-// obagent is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//
-// http://license.coscl.org.cn/MulanPSL2
-//
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-// EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-// MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
+/**
+log example:
+2021-05-24T12:24:02.61052+08:00 INFO [50619,] caller=log/logger_test.go:23,TestLogExample: info-log-1 fields: field-key-1=field-val-1
+2021-05-24T12:24:02.61055+08:00 DEBUG [50619,TRACE-ID] caller=log/logger_test.go:28,TestLogExample: debug-log-2
+2021-05-24T12:24:02.61057+08:00 INFO [50619,TRACE-ID] caller=log/logger_test.go:34,TestLogExample: info-log-2 fields: field-key-2=field-val-2, field-key-3=field-val-3
+*/
 
 package log
 
@@ -17,7 +12,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,6 +27,11 @@ const (
 	yellow = 33
 	blue   = 36
 	gray   = 37
+)
+
+const (
+	FieldKeyLine     = "line"
+	FieldKeyDuration = "duration"
 )
 
 var (
@@ -75,7 +74,7 @@ type TextFormatter struct {
 	// If both of them are set to true, quote will be forced on all values.
 	DisableQuote bool
 
-	// Override coloring based on CLICOLOR and CLICOLOR_FORCE. - https://bixense.com/clicolors/
+	// Override coloring based on CLICOLOR and CLICOLOR_FORCE.
 	EnvironmentOverrideColors bool
 
 	// Disable timestamp logging. useful when output is redirected to logging
@@ -203,55 +202,22 @@ func (f *TextFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	for k, v := range entry.Data {
 		data[k] = v
 	}
+	// fix log warp, such as node_exporter go-kit
+	if levelRaw, ex := data[logrus.FieldKeyLevel]; ex {
+		levelStr := fmt.Sprint(levelRaw)
+		level, err := logrus.ParseLevel(levelStr)
+		if err != nil {
+			return nil, fmt.Errorf("parse %+v to logrus.Level failed, err:+%v", level, err)
+		}
+		if !entry.Logger.IsLevelEnabled(level) {
+			return nil, nil
+		}
+	}
+
 	prefixFieldClashes(data, f.FieldMap, entry.HasCaller())
 	keys := make([]string, 0, len(data))
 	for k := range data {
 		keys = append(keys, k)
-	}
-
-	var funcVal, fileVal string
-
-	fixedKeys := make([]string, 0, 4+len(data))
-	if !f.DisableTimestamp {
-		fixedKeys = append(fixedKeys, f.FieldMap.resolve(logrus.FieldKeyTime))
-	}
-	fixedKeys = append(fixedKeys, f.FieldMap.resolve(logrus.FieldKeyLevel))
-	if entry.Message != "" {
-		fixedKeys = append(fixedKeys, f.FieldMap.resolve(logrus.FieldKeyMsg))
-	}
-	// if entry.err != "" {
-	// 	fixedKeys = append(fixedKeys, f.FieldMap.resolve(FieldKeyLogrusError))
-	// }
-	if entry.HasCaller() {
-		if f.CallerPrettyfier != nil {
-			funcVal, fileVal = f.CallerPrettyfier(entry.Caller)
-		} else {
-			funcVal = entry.Caller.Function
-			fileVal = fmt.Sprintf("%s:%d", entry.Caller.File, entry.Caller.Line)
-		}
-
-		if funcVal != "" {
-			fixedKeys = append(fixedKeys, f.FieldMap.resolve(logrus.FieldKeyFunc))
-		}
-		if fileVal != "" {
-			fixedKeys = append(fixedKeys, f.FieldMap.resolve(logrus.FieldKeyFile))
-		}
-	}
-
-	if !f.DisableSorting {
-		if f.SortingFunc == nil {
-			sort.Strings(keys)
-			fixedKeys = append(fixedKeys, keys...)
-		} else {
-			if !f.isColored() {
-				fixedKeys = append(fixedKeys, keys...)
-				f.SortingFunc(fixedKeys)
-			} else {
-				f.SortingFunc(keys)
-			}
-		}
-	} else {
-		fixedKeys = append(fixedKeys, keys...)
 	}
 
 	var b *bytes.Buffer
@@ -313,7 +279,17 @@ func (f *TextFormatter) printMessage(b *bytes.Buffer, entry *logrus.Entry, keys 
 		} else {
 			caller = fileVal + ":" + funcVal
 		}
+	} else {
+		file, _ := data[logrus.FieldKeyFile]
+		line, _ := data[FieldKeyLine]
+		funcStr, _ := data[logrus.FieldKeyFunc]
+		caller = fmt.Sprintf("%+v:%+v:%+v", file, line, funcStr)
+		// delete keys in data
+		delete(data, logrus.FieldKeyFile)
+		delete(data, FieldKeyLine)
+		delete(data, logrus.FieldKeyFunc)
 	}
+
 	if f.isColored() {
 		f.printColored(b, entry, keys, data, timestampFormat, levelText, caller, traceId)
 	} else {
@@ -367,10 +343,13 @@ func (f *TextFormatter) printColored(b *bytes.Buffer, entry *logrus.Entry,
 			entry.Message)
 	}
 	if len(keys) > 0 {
-		b.WriteString("    ")
+		b.WriteString(" fields:")
 	}
 	for i, k := range keys {
-		v := data[k]
+		v, ex := data[k]
+		if !ex {
+			continue
+		}
 		if i == 0 {
 			fmt.Fprintf(b, " \x1b[%dm%s\x1b[0m=", levelColor, k)
 		} else {
@@ -408,11 +387,14 @@ func (f *TextFormatter) printNoColored(b *bytes.Buffer, entry *logrus.Entry,
 			caller,
 			entry.Message)
 	}
-	if len(keys) > 0 {
+	if len(data) > 0 {
 		b.WriteString(" fields:")
 	}
 	for i, k := range keys {
-		v := data[k]
+		v, ex := data[k]
+		if !ex {
+			continue
+		}
 		if i == 0 {
 			fmt.Fprintf(b, " %s=", k)
 		} else {
@@ -463,4 +445,18 @@ func (f *TextFormatter) appendValue(b *bytes.Buffer, value interface{}) {
 	} else {
 		b.WriteString(fmt.Sprintf("%q", stringVal))
 	}
+}
+
+func getPackage(filename string) string {
+	n := 0
+	for i := len(filename) - 1; i > 0; i-- {
+		if filename[i] == '/' {
+			n++
+			if n >= 2 {
+				filename = filename[i+1:]
+				break
+			}
+		}
+	}
+	return filename
 }

@@ -14,30 +14,18 @@ OBAgent 提供使用 OBD 部署和手动部署。要手动部署 OBAgent，您�
 
 按以下步骤部署 OBAgent：
 
-### 步骤1：部署 monagent
+### 步骤1：部署 obagent
 
 1. 修改配置文件，详细信息，参考 [monagent 配置](../config-reference/monagent-config.md) 和 [KV 配置](../config-reference/kv-config.md)。
 
-2. 启动 monagent 进程。推荐您使用 Supervisor 启动 monagent 进程。
+2. 启动 obagent。
 
     ```bash
     # 将当前目录切换至 OBAgent 的安装目录
-    cd /home/admin/obagent
+    cd /home/admin/obagent/bin
     # 启动 monagent 进程
-    nohup ./bin/monagent -c conf/monagent.yaml >> ./log/monagent_stdout.log 2>&1 &
+    ./ob_agentctl start
 
-    ```
-
-    ```bash
-    # Supervisor 配置样例
-    [program:monagent]
-    command=./bin/monagent -c conf/monagent.yaml
-    directory=/home/admin/obagent
-    autostart=true
-    autorestart=true
-    redirect_stderr=true
-    priority=10
-    stdout_logfile=log/monagent_stdout.log
     ```
 
 ### （可选）步骤2：部署 Prometheus
@@ -88,10 +76,10 @@ groups:
 
 ## （可选）更新 KV 配置
 
-OBAgent 提供了更新配置的接口。您可以通过 HTTP 服务更新 KV 配置项：
+您可以通过 OBAgent 的 黑屏运维工具 ob_agentctl 来更新 KV 配置项：
 
 ```bash
 # 您可以同时更新多个 KV 的配置项，写多组 key 和 value 即可。
 
-curl --user user:pass -H "Content-Type:application/json" -d '{"configs":[{"key":"monagent.pipeline.ob.status", "value":"active"}]}' -L 'http://ip:port/api/v1/module/config/update'
+./ob_agentctl config -u monagent.pipeline.ob.status=active,monagent.host.ip=127.0.0.1
 ```

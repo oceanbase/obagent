@@ -1,0 +1,119 @@
+modules:
+    -
+      module: mgragent.logquerier
+      moduleType: mgragent.logquerier
+      process: ob_mgragent
+      config:
+        queryTimeout: 1m
+        downloadTimeout: 3m
+        errCountLimit: 100
+        logTypeQueryConfigs:
+          - logType: observer
+            isOverrideByPriority: true
+            logLevelAndFilePatterns:
+              - logLevel: ERROR
+                dir: ${ob.install.path}/log
+                filePatterns:
+                  - observer.log.wf*
+                logParserCategory: ob_light
+              - logLevel: WARN
+                dir: ${ob.install.path}/log
+                filePatterns:
+                  - observer.log.wf*
+                logParserCategory: ob_light
+              - logLevel: INFO
+                dir: ${ob.install.path}/log
+                filePatterns:
+                  - observer.log*
+                logParserCategory: ob_light
+              - logLevel: DEBUG
+                dir: ${ob.install.path}/log
+                filePatterns:
+                  - observer.log*
+                logParserCategory: ob_light
+          - logType: rootservice
+            isOverrideByPriority: true
+            logLevelAndFilePatterns:
+              - logLevel: ERROR
+                dir: ${ob.install.path}/log
+                filePatterns:
+                  - rootservice.log.wf*
+                logParserCategory: ob_light
+              - logLevel: WARN
+                dir: ${ob.install.path}/log
+                filePatterns:
+                  - rootservice.log.wf*
+                logParserCategory: ob_light
+              - logLevel: INFO
+                dir: ${ob.install.path}/log
+                filePatterns:
+                  - rootservice.log*
+                logParserCategory: ob_light
+              - logLevel: DEBUG
+                dir: ${ob.install.path}/log
+                filePatterns:
+                  - rootservice.log*
+                logParserCategory: ob_light
+          - logType: election
+            isOverrideByPriority: true
+            logLevelAndFilePatterns:
+              - logLevel: ERROR
+                dir: ${ob.install.path}/log
+                filePatterns:
+                  - election.log.wf*
+                logParserCategory: ob_light
+              - logLevel: WARN
+                dir: ${ob.install.path}/log
+                filePatterns:
+                  - election.log.wf*
+                logParserCategory: ob_light
+              - logLevel: INFO
+                dir: ${ob.install.path}/log
+                filePatterns:
+                  - election.log*
+                logParserCategory: ob_light
+              - logLevel: DEBUG
+                dir: ${ob.install.path}/log
+                filePatterns:
+                  - election.log*
+                logParserCategory: ob_light
+          - logType: mgragent
+            isOverrideByPriority: false
+            logLevelAndFilePatterns:
+              - logLevel: ALL
+                dir: ${obagent.home.path}/log
+                filePatterns:
+                  - mgragent.log*
+                logParserCategory: agent_light
+          - logType: agentctl
+            isOverrideByPriority: false
+            logLevelAndFilePatterns:
+              - logLevel: ALL
+                dir: ${obagent.home.path}/log
+                filePatterns:
+                  - agentctl.log*
+                logParserCategory: agent_light
+          - logType: monagent
+            isOverrideByPriority: false
+            logLevelAndFilePatterns:
+              - logLevel: ALL
+                dir: ${obagent.home.path}/log
+                filePatterns:
+                  - monagent.log*
+                logParserCategory: agent_light
+          - logType: agentd
+            isOverrideByPriority: false
+            logLevelAndFilePatterns:
+              - logLevel: ALL
+                dir: ${obagent.home.path}/log
+                filePatterns:
+                  - agentd.log*
+                logParserCategory: agent_light
+          - logType: host
+            isOverrideByPriority: false
+            logLevelAndFilePatterns:
+              - logLevel: ALL
+                dir: /var/log
+                filePatterns:
+                  - messages*
+                logParserCategory: host_light

@@ -1,18 +1,8 @@
-// Copyright (c) 2021 OceanBase
-// obagent is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//
-// http://license.coscl.org.cn/MulanPSL2
-//
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-// EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-// MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 package config
 
 import (
+	"context"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,7 +20,7 @@ func SetConfigPropertyMeta(property *ConfigProperty) {
 	configPropertyMetas[property.Key] = property
 }
 
-func mergeConfigProperties() {
+func mergeConfigProperties(ctx context.Context) {
 	for key, meta := range configPropertyMetas {
 		property, ex := mainConfigProperties.allConfigProperties[key]
 		if !ex {
@@ -39,13 +29,12 @@ func mergeConfigProperties() {
 		}
 		if property.Value == meta.DefaultValue {
 			if meta.Masked {
-				// The data needs to be desensitized, and the content will not be printed
-				log.Warnf("config key %s is still set as default value", key)
+				log.WithContext(ctx).Warnf("config key %s is still set as default value", key)
 			} else {
-				log.Warnf("config key %s is still set as default value:%+v", key, property.DefaultValue)
+				log.WithContext(ctx).Debugf("config key %s is still set as default value:%+v", key, property.DefaultValue)
 			}
 		}
-		log.Debugf("merge config meta and configfile config, config key %s", key)
+		log.WithContext(ctx).Debugf("merge config meta and configfile config, config key %s", key)
 		property.DefaultValue = meta.DefaultValue
 		property.ValueType = meta.ValueType
 		property.Encrypted = meta.Encrypted

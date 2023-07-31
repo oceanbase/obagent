@@ -1,0 +1,83 @@
+logTailerInput: &logTailerInput
+  plugin: logTailerInput
+  config:
+    timeout: 60s
+    pluginConfig:
+      tailConfigs:
+        -   logDir: ${ob.install.path}/log
+            logFileName: observer.log
+            processLogInterval: 500ms
+            logSourceType: observer
+            logAnalyzerType: ob
+        -   logDir: ${ob.install.path}/log
+            logFileName: election.log
+            processLogInterval: 500ms
+            logSourceType: election
+            logAnalyzerType: ob
+        -   logDir: ${ob.install.path}/log
+            logFileName: rootservice.log
+            processLogInterval: 500ms
+            logSourceType: rootservice
+            logAnalyzerType: ob
+      recoveryConfig:
+          enabled: true
+          triggerThreshold: 10000
+
+logTransformer: &logTransformer
+  plugin: logTransformer
+  config:
+    timeout: 10s
+    pluginConfig:
+
+retagProcessor: &retagProcessor
+  plugin: retagProcessor
+  config:
+    timeout: 10s
+    pluginConfig:
+      newTags:
+        ip: ${monagent.host.ip}
+        obClusterId: ${monagent.ob.cluster.id}
+        obClusterName: ${monagent.ob.cluster.name}
+
+esOutput: &esOutput
+  plugin: esOutput
+  config:
+    timeout: 10s
+    pluginConfig:
+      clientAddresses: ${es.client.addresses}
+      auth:
+        username: ${es.client.auth.username}
+        password: ${es.client.auth.password}
+      indexNamePattern: ocp_log_%Y%m%d
+      batchSizeInBytes: 1048576
+      maxBatchWait: 1s
+      docMap:
+        timestamp: timestamp
+        timestampPrecision: 1us
+        name: file
+        tags:
+          level: level
+          app: app
+        fields:
+          content: content
+          tags: tags
+
+modules:
+  - module: monitor.ob.log
+    moduleType: monagent.pipeline
+    process: ob_monagent
+    config:
+      name: ob.log
+      status: ${monagent.pipeline.ob.log.status}
+      pipelines:
+        - name: ob_log_to_es
+          config:
+            scheduleStrategy: bySource
+          structure:
+            inputs:
+              - <<: *logTailerInput
+            processors:
+              - <<: *retagProcessor
+              - <<: *logTransformer
+            output:
+              <<: *esOutput

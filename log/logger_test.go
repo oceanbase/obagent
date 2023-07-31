@@ -1,15 +1,3 @@
-// Copyright (c) 2021 OceanBase
-// obagent is licensed under Mulan PSL v2.
-// You can use this software according to the terms and conditions of the Mulan PSL v2.
-// You may obtain a copy of Mulan PSL v2 at:
-//
-// http://license.coscl.org.cn/MulanPSL2
-//
-// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-// EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-// MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-// See the Mulan PSL v2 for more details.
-
 package log
 
 import (
@@ -18,17 +6,27 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
+func initlog() *logrus.Logger {
+	return InitLogger(LoggerConfig{
+		Level:      "debug",
+		Filename:   "../tests/test.log",
+		MaxSize:    10, // 10M
+		MaxAge:     3,  // 3days
+		MaxBackups: 3,
+		LocalTime:  false,
+		Compress:   false,
+	})
+}
+
 func TestLogExample(t *testing.T) {
 	buf := bytes.NewBuffer(make([]byte, 0, 1024))
 	_ = buf
-	logger := InitLogger(LoggerConfig{
-		Output: os.Stdout,
-		Level:  "debug",
-	})
+	logger := initlog()
 
 	// use logger
 	logger.Debugf("debug-log-%d", 1)
@@ -53,18 +51,57 @@ func TestLogExample(t *testing.T) {
 }
 
 func TestLogFile(t *testing.T) {
-	InitLogger(LoggerConfig{
-		Output:     nil,
-		Level:      "debug",
-		Filename:   "../tests/test.log",
-		MaxSize:    10, // 10M
-		MaxAge:     3,  // 3days
-		MaxBackups: 3,
-		LocalTime:  false,
-		Compress:   false,
-	})
+	initlog()
 
 	// use logrus
 	logrus.Debugf("debug-log-%d", 1)
 	logrus.WithField("field-key-1", "field-val-1").Infof("info-log-%d", 1)
+}
+
+func TestLogDuration(t *testing.T) {
+	initlog()
+
+	ctx := context.WithValue(context.Background(), StartTimeKey, time.Now())
+	log := logrus.WithContext(ctx)
+	time.Sleep(time.Millisecond)
+	log.Infof("test duration 1ms")
+}
+
+func TestFields(t *testing.T) {
+	initlog()
+
+	Fields("key1", 100, 2, 200.001, 3, "300").Infof("test fields")
+	Fields().Infof("test 0 fields")
+	Fields("1").Infof("test 1 fields")
+	Fields("key1", 100, 2).Infof("test 3 fields")
+}
+
+func TestStdout(t *testing.T) {
+	logger := logrus.StandardLogger()
+	logger.SetOutput(os.Stdout)
+	logrus.Infof("test stdout")
+}
+
+type errWriter struct{}
+
+func (w *errWriter) Write(p []byte) (n int, err error) {
+	return 0, fmt.Errorf("write err")
+}
+
+func (w *errWriter) Close() error {
+	return nil
+}
+
+func TestNoErrWriter(t *testing.T) {
+	w := &noErrWriter{
+		w: &errWriter{},
+	}
+	msg := "hello~"
+	n, err := w.Write([]byte(msg))
+	if err != nil {
+		t.Error("should no error")
+	}
+	if n != len(msg) {
+		t.Error("length wrong")
+	}
 }

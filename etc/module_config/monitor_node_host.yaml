@@ -3,40 +3,105 @@ nodeInput: &nodeInput
   config:
     timeout: 10s
     pluginConfig:
-        metricFamilies: [ node_cpu_seconds_total, node_filesystem_avail_bytes, node_filesystem_size_bytes, node_filesystem_readonly, node_disk_reads_completed_total, node_disk_read_bytes_total, node_disk_read_time_seconds_total, node_disk_writes_completed_total, node_disk_written_bytes_total, node_disk_write_time_seconds_total, node_load1, node_load15, node_load5, node_memory_Buffers_bytes, node_memory_MemFree_bytes, node_memory_Cached_bytes, node_memory_MemTotal_bytes, node_network_receive_bytes_total, node_network_transmit_bytes_total, node_ntp_offset_seconds ]
+        collect_interval: ${monagent.second.metric.cache.update.interval}
+        collectors: [ cpu, diskstats, loadavg, meminfo, filesystem, netdev]
+        metricFamilies: [ node_cpu_seconds_total, node_filesystem_avail_bytes, node_filesystem_size_bytes, node_disk_reads_completed_total, node_disk_read_bytes_total, node_disk_read_time_seconds_total, node_disk_writes_completed_total, node_disk_written_bytes_total, node_disk_write_time_seconds_total, node_load1, node_load15, node_load5, node_memory_Buffers_bytes, node_memory_MemFree_bytes, node_memory_Cached_bytes, node_memory_MemTotal_bytes, node_network_receive_bytes_total, node_network_transmit_bytes_total, node_disk_io_time_weighted_seconds_total ]
 
-retagProcessor: &retagProcessor
-  plugin: retagProcessor
+customInput: &customInput
+  plugin: hostCustomInput
   config:
-    timout: 10s
+    timeout: 60s
     pluginConfig:
-      newTags:
-        app: HOST
-        svr_ip: ${monagent.host.ip}
+      timeout: 50s
+      collect_interval: ${monagent.second.metric.cache.update.interval}
+
+processInput: &processInput
+  plugin: processInput
+  config:
+    timeout: 20s
+    pluginConfig:
+      processNames: [ob_agentd, ntpd, chronyd]
+      collect_interval: ${monagent.second.metric.cache.update.interval}
+
+attrProcessor: &attrProcessor
+  plugin: attrProcessor
+  config:
+    timeout: 10s
+    pluginConfig:
+      operations:
+      - oper: copyTags
+        tags:
+          mountpoint: mount_point
+          dev: device
+      - oper: addTags
+        tags:
+          app: HOST
+          svr_ip: ${monagent.host.ip}
+          svr_port: ${monagent.ob.rpc.port}
+          obzone: ${monagent.ob.zone.name}
+          ob_cluster_id: ${monagent.ob.cluster.id}
+          ob_cluster_name: ${monagent.ob.cluster.name}
+      - oper: removeMetric
+        condition:
+          metric: node_filesystem_size_bytes
+          tags:
+            fstype: tmpfs
+      - oper: removeMetric
+        condition:
+          metric: node_filesystem_avail_bytes
+          tags:
+            fstype: tmpfs
+
+aggregateProcessor: &aggregateProcessor
+  plugin: aggregateProcessor
+  config:
+    timeout: 10s
+    pluginConfig:
+      rules:
+        - metric: node_cpu_seconds_total
+          tags: [ mode ]
+      isRetainNativeMetric: false
+
+mountLabelProcessor: &mountLabelProcessor
+  plugin: mountLabelProcessor
+  config:
+    timeout: 10s
+    pluginConfig:
+      labelTags:
+        installPath: ${ob.install.path}
+        dataDiskPath: ${ob.data.path}
+        logDiskPath: ${ob.log.path}
+        checkReadonly: ${host.check.readonly.mountpoint}
+      ob_status: ${monagent.pipeline.ob.status}
 
 prometheusExporter: &prometheusExporter
   plugin: prometheusExporter
   config:
-    timout: 10s
+    timeout: 10s
     pluginConfig:
       formatType: fmtText
+      withTimestamp: true
+      exposeUrl: /metrics/node/host
 
 modules:
   - module: monitor.node.host
     moduleType: monagent.pipeline
-    process: monagent
+    process: ob_monagent
     config:
       name: monitor.node.host
       status: ${monagent.pipeline.node.status}
       pipelines:
         - name: node_info
           config:
-            scheduleStrategy: trigger
-            exposeUrl: /metrics/node/host
+            scheduleStrategy: bySource
           structure:
             inputs:
               - <<: *nodeInput
+              - <<: *customInput
+              - <<: *processInput
             processors:
-              - <<: *retagProcessor
+              - <<: *aggregateProcessor
+              - <<: *attrProcessor
+              - <<: *mountLabelProcessor
             exporter:
               <<: *prometheusExporter
