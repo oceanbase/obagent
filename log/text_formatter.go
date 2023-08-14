@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2023 OceanBase
+ * OBAgent is licensed under Mulan PSL v2.
+ * You can use this software according to the terms and conditions of the Mulan PSL v2.
+ * You may obtain a copy of Mulan PSL v2 at:
+ *          http://license.coscl.org.cn/MulanPSL2
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+ * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+ * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+ * See the Mulan PSL v2 for more details.
+ */
+
 /**
 log example:
 2021-05-24T12:24:02.61052+08:00 INFO [50619,] caller=log/logger_test.go:23,TestLogExample: info-log-1 fields: field-key-1=field-val-1
