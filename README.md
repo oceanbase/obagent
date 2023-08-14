@@ -88,3 +88,6 @@ make build-debug
 ```bash
 make build-release
 ```
+
+# License
+OBAgent根据 Mulan 公共许可证版本 2 获得许可。有关详细信息，请参阅 [木兰宽松许可证, 第2版](http://license.coscl.org.cn/MulanPSL2) 。
