@@ -20,7 +20,9 @@ processInput: &processInput
   config:
     timeout: 20s
     pluginConfig:
-      processNames: [ob_agentd, ntpd, chronyd]
+      collectConfig:
+        - username:
+          processes: [ob_agentd, ntpd, chronyd]
       collect_interval: ${monagent.second.metric.cache.update.interval}
 
 attrProcessor: &attrProcessor

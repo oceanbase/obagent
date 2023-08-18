@@ -67,12 +67,16 @@ type AllProcesses struct {
 }
 
 type ProcessInfo struct {
-	Name string
-	Pid  int32
+	Name     string
+	Pid      int32
+	UserName string
+	Cmdline  string
 }
 
-var allProcesses *AllProcesses
-var processLock sync.Mutex
+var (
+	allProcesses *AllProcesses
+	processLock  sync.Mutex
+)
 
 func (p *AllProcesses) init() {
 	process := make([]*ProcessInfo, 0)
@@ -87,6 +91,7 @@ func (p *AllProcesses) Close() {
 		p.Cancel()
 	}
 }
+
 func GetProcesses() *AllProcesses {
 	processLock.Lock()
 	if allProcesses == nil {
@@ -127,7 +132,17 @@ func (p *AllProcesses) refreshProcesses() {
 			log.WithError(err).Warnf("failed to get process name of pid: %d", proc.Pid)
 			continue
 		}
-		processInfos = append(processInfos, &ProcessInfo{name, proc.Pid})
+		username, err := proc.Username()
+		if err != nil {
+			log.WithError(err).Warnf("failed to get process username of pid: %d", proc.Pid)
+			continue
+		}
+		cmdline, err := proc.Cmdline()
+		if err != nil {
+			log.WithError(err).Warnf("failed to get process cmdline of pid: %d", proc.Pid)
+			continue
+		}
+		processInfos = append(processInfos, &ProcessInfo{Name: name, Pid: proc.Pid, UserName: username, Cmdline: cmdline})
 	}
 	p.Processes = processInfos
 }

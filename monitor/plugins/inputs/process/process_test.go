@@ -14,26 +14,36 @@ package process
 
 import (
 	"context"
-	"errors"
 	"testing"
 
+	"github.com/oceanbase/obagent/monitor/plugins/common"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
 
 func TestProcessExists(t *testing.T) {
 	config := `
-        processNames: [process1]
-    `
-	var configMap map[string]interface{}
-	yaml.Unmarshal([]byte(config), &configMap)
-	processInput := &ProcessInput{}
-	processInput.Init(context.Background(), configMap)
-	allProcessNames = func() ([]string, error) {
-		return []string{"process0", "process1", "process2"}, nil
+    collectConfig:
+      - username: root
+        processes: [process0]
+    collect_interval: 1s
+  `
+	allProcess = func() []*common.ProcessInfo {
+		return []*common.ProcessInfo{
+			{
+				Name:     "process0",
+				Pid:      100,
+				UserName: "root",
+			},
+		}
 	}
+	var configMap map[string]interface{}
+	err := yaml.Unmarshal([]byte(config), &configMap)
+	require.NoError(t, err)
+	processInput := &ProcessInput{}
+	err = processInput.Init(context.Background(), configMap)
+	require.NoError(t, err)
 	metrics, err := processInput.CollectMsgs(context.Background())
-	require.Equal(t, 1, len(metrics))
 	require.True(t, err == nil)
 	require.Equal(t, 1, len(metrics))
 	value, exists := metrics[0].GetField("value")
@@ -45,17 +55,27 @@ func TestProcessExists(t *testing.T) {
 
 func TestProcessNotExists(t *testing.T) {
 	config := `
-        processNames: [process1]
-    `
-	var configMap map[string]interface{}
-	yaml.Unmarshal([]byte(config), &configMap)
-	processInput := &ProcessInput{}
-	processInput.Init(context.Background(), configMap)
-	allProcessNames = func() ([]string, error) {
-		return []string{"process0", "process2"}, nil
+    collectConfig:
+      - username: root
+        processes: [process0]
+    collect_interval: 1s
+  `
+	allProcess = func() []*common.ProcessInfo {
+		return []*common.ProcessInfo{
+			{
+				Name:     "process1",
+				Pid:      101,
+				UserName: "root",
+			},
+		}
 	}
+	var configMap map[string]interface{}
+	err := yaml.Unmarshal([]byte(config), &configMap)
+	require.NoError(t, err)
+	processInput := &ProcessInput{}
+	err = processInput.Init(context.Background(), configMap)
+	require.NoError(t, err)
 	metrics, err := processInput.CollectMsgs(context.Background())
-	require.Equal(t, 1, len(metrics))
 	require.True(t, err == nil)
 	require.Equal(t, 1, len(metrics))
 	value, exists := metrics[0].GetField("value")
@@ -63,20 +83,4 @@ func TestProcessNotExists(t *testing.T) {
 	value, ok := value.(float64)
 	require.True(t, ok)
 	require.Equal(t, 0.0, value)
-}
-
-func TestErr(t *testing.T) {
-	config := `
-        processNames: [process1]
-    `
-	var configMap map[string]interface{}
-	yaml.Unmarshal([]byte(config), &configMap)
-	processInput := &ProcessInput{}
-	processInput.Init(context.Background(), configMap)
-	allProcessNames = func() ([]string, error) {
-		return nil, errors.New("test")
-	}
-	metrics, err := processInput.CollectMsgs(context.Background())
-	require.Equal(t, 0, len(metrics))
-	require.True(t, err == nil)
 }
