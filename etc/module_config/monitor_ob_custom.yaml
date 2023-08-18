@@ -13,7 +13,9 @@ processInput: &processInput
   config:
     timeout: 20s
     pluginConfig:
-      processNames: [observer]
+      collectConfig:
+        - username:
+          processes: [observer]
       collect_interval: ${monagent.second.metric.cache.update.interval}
 
 prometheusExporter: &prometheusExporter

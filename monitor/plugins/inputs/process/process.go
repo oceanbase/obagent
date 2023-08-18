@@ -14,6 +14,7 @@ package process
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -32,9 +33,14 @@ const description = `
 collect process info
 `
 
+type ProcessGroup struct {
+	UserName  string   `yaml:"username"`
+	Processes []string `yaml:"processes"`
+}
+
 type ProcessConfig struct {
-	ProcessNames    []string      `yaml:"processNames"`
-	CollectInterval time.Duration `yaml:"collect_interval"`
+	CollectConfig   []*ProcessGroup `yaml:"collectConfig"`
+	CollectInterval time.Duration   `yaml:"collect_interval"`
 }
 
 type ProcessInput struct {
@@ -105,37 +111,64 @@ func (p *ProcessInput) Description() string {
 	return description
 }
 
+func (p *ProcessInput) getLength() int {
+	var length int
+	for _, val := range p.Config.CollectConfig {
+		length += len(val.Processes)
+	}
+	return length
+}
+
 func (p *ProcessInput) CollectMsgs(ctx context.Context) ([]*message.Message, error) {
-	metrics := make([]*message.Message, 0, len(p.Config.ProcessNames))
-	processes, err := allProcessNames()
-	if err != nil {
-		log.WithContext(ctx).Warnf("get all processes name failed, %s", err)
-		return metrics, nil
+	metrics := make([]*message.Message, 0, p.getLength())
+	processes := allProcess()
+	for _, processGroup := range p.Config.CollectConfig {
+		expectedUserName := processGroup.UserName
+		for _, expectedName := range processGroup.Processes {
+			expectedName = strings.Trim(expectedName, " ")
+			var value float64
+			var username string
+			for _, process := range processes {
+				if expectedUserName == "" {
+					if matchProcess(expectedName, process.Name, process.Cmdline) {
+						username = process.UserName
+						value = 1.0
+						break
+					}
+				} else {
+					if expectedUserName == process.UserName && matchProcess(expectedName, process.Name, process.Cmdline) {
+						username = process.UserName
+						value = 1.0
+						break
+					}
+				}
+			}
+
+			// if not found
+			if value < 1 {
+				username = expectedUserName
+			}
+
+			metricEntry := message.NewMessage("process_exists", message.Gauge, time.Now()).
+				AddTag("process_name", expectedName).
+				AddTag("process_usename", username).
+				AddTag("env_type", p.Env).
+				AddField("value", value)
+			metrics = append(metrics, metricEntry)
+		}
 	}
 
-	for _, expectedName := range p.Config.ProcessNames {
-		var value float64
-		value = 0.0
-		for _, processName := range processes {
-			if processName == expectedName {
-				value = 1.0
-				break
-			}
-		}
-		metricEntry := message.NewMessage("process_exists", message.Gauge, time.Now()).
-			AddTag("name", expectedName).
-			AddTag("env_type", p.Env).
-			AddField("value", value)
-		metrics = append(metrics, metricEntry)
-	}
 	return metrics, nil
 }
 
-var allProcessNames = func() ([]string, error) {
-	allProcesses := common.GetProcesses()
-	processNames := make([]string, 0, len(allProcesses.Processes))
-	for _, proc := range allProcesses.Processes {
-		processNames = append(processNames, proc.Name)
+func matchProcess(expectedProcessName, actualProcessName, actualProcessCmdline string) bool {
+	if strings.Contains(expectedProcessName, " ") {
+		return strings.Contains(actualProcessCmdline, expectedProcessName)
+	} else {
+		return expectedProcessName == actualProcessName
 	}
-	return processNames, nil
+}
+
+var allProcess = func() []*common.ProcessInfo {
+	return common.GetProcesses().Processes
 }
