@@ -14,16 +14,26 @@ package common
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha1"
 	"encoding/base64"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/oceanbase/obagent/config"
+	"github.com/oceanbase/obagent/errors"
 	http2 "github.com/oceanbase/obagent/lib/http"
+)
+
+const (
+	Basic           string = "Basic"
+	HmacSHA1        string = "OCP-HMACSHA1"
+	TRACE_ID_HEADER string = "X-OCP-Trace-ID"
+	TimeFormat      string = "2006/01/02 15:04:05"
 )
 
 type Authorizer interface {
@@ -64,29 +74,57 @@ func (auth *BasicAuth) Authorize(req *http.Request) error {
 	authHeader := req.Header.Get("Authorization")
 	authHeaders := strings.SplitN(authHeader, " ", 2)
 	if len(authHeaders) != 2 {
-		return errors.Errorf("invalid header authorization: %s, should contain 2 content.", authHeader)
+		log.Errorf("invalid header authorization: %s, should contain 2 content. url: %s", authHeader, req.URL)
+		return errors.Errorf("invalid header authorization")
 	}
 
-	if authHeaders[0] != "Basic" {
-		return errors.Errorf("invalid header authorization: %s, first content should be Basic, got %s.", authHeader, authHeaders[0])
-	}
-	var content []byte
-	var err error
-	if content, err = base64.StdEncoding.DecodeString(authHeaders[1]); err != nil {
-		return errors.Errorf("invalid header authorization: %s, decode base64 err: %s", authHeaders[1], err)
+	authType := authHeaders[0]
+	if authType != Basic && authType != HmacSHA1 {
+		log.Errorf("invalid header authorization: %s, first content should be Basic or OCP-HMACSHA1, got %s.", authHeader, authHeaders[0])
+		return errors.Errorf("invalid header authorization")
 	}
 
-	// base64-encoding-content decode result: username:password
-	contentStrs := strings.SplitN(string(content), ":", 2)
-	if len(contentStrs) != 2 {
-		return errors.Errorf("invalid header authorization: %s, decode base64 result err: %s does not contain :", authHeaders[1], content)
+	switch authType {
+	case Basic:
+		content, err := base64.StdEncoding.DecodeString(authHeaders[1])
+		if err != nil {
+			log.Errorf("invalid header authorization: %s, decode base64 err: %s", authHeaders[1], err)
+			return errors.Errorf("invalid header authorization")
+		}
+
+		// base64-encoding-content decode result: username:password
+		contentStrs := strings.SplitN(string(content), ":", 2)
+		if len(contentStrs) != 2 {
+			log.Errorf("invalid header authorization: %s, decode base64 result err: %s does not contain :", authHeaders[1], content)
+			return errors.Errorf("invalid header authorization")
+		}
+
+		if contentStrs[0] == auth.config.Username && contentStrs[1] == auth.config.Password {
+			return nil
+		} else {
+			return errors.Errorf("wrong password")
+		}
+	case HmacSHA1:
+		if !checkReqTime(req) {
+			log.Errorf("check request Date failed")
+			return errors.Occur(errors.ErrBadRequest)
+		}
+		// digest-content: username:signature
+		contentStrs := strings.SplitN(authHeaders[1], ":", 2)
+		if len(contentStrs) != 2 {
+			log.Errorf("invalid header authorization: %s", authHeaders[1])
+			return errors.Errorf("invalid header authorization")
+		}
+		sign := computeSign(req, auth.config.Password)
+		if contentStrs[0] == auth.config.Username && contentStrs[1] == sign {
+			return nil
+		} else {
+			log.Errorf("digest http auth failed, ocp-server-user: %s, agent-user: %s, sign is invalid.", contentStrs[0], auth.config.Username)
+			return errors.Errorf("wrong digest")
+		}
 	}
 
-	if contentStrs[0] == auth.config.Username && contentStrs[1] == auth.config.Password {
-		return nil
-	}
-
-	return errors.Errorf("auth failed for user: %s", contentStrs[0])
+	return errors.Errorf("no authentication")
 }
 
 func AuthorizeMiddleware(c *gin.Context) {
@@ -106,4 +144,34 @@ func AuthorizeMiddleware(c *gin.Context) {
 		return
 	}
 	c.Next()
+}
+
+func checkReqTime(req *http.Request) bool {
+	date := req.Header.Get("Date")
+	if date == "" {
+		return true
+	}
+	timeParse, err := time.Parse(TimeFormat, date)
+	if err != nil {
+		log.WithError(err).Errorf("invalid request date, date: %s", date)
+		return false
+	}
+	if time.Now().Sub(timeParse) > 60*time.Second {
+		log.Warnf("request date is too early, just skip")
+		return false
+	}
+	return true
+}
+
+func computeSign(req *http.Request, password string) string {
+	method := req.Method
+	url := req.URL.String()
+	contentType := req.Header.Get("Content-Type")
+	date := req.Header.Get("Date")
+	traceId := req.Header.Get(TRACE_ID_HEADER)
+	string2Sign := method + "\n" + url + "\n" + contentType + "\n" + date + "\n" + traceId
+	mac := hmac.New(sha1.New, []byte(password))
+	mac.Write([]byte(string2Sign))
+	signature := base64.StdEncoding.EncodeToString(mac.Sum(nil))
+	return signature
 }
