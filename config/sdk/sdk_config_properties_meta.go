@@ -81,6 +81,12 @@ func setCommonAgentConfigPropertyMeta() {
 		})
 	config.SetConfigPropertyMeta(
 		&config.ConfigProperty{
+			Key:          "ocp.agent.home.path",
+			DefaultValue: path.AgentDir(),
+			ValueType:    config.ValueString,
+		})
+	config.SetConfigPropertyMeta(
+		&config.ConfigProperty{
 			Key:          "ocp.agent.http.socks.proxy.enabled",
 			DefaultValue: "false",
 			ValueType:    config.ValueBool,

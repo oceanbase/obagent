@@ -10,8 +10,8 @@ configs:
       value: ""
       valueType: string
     - key: ocp.agent.manager.http.port
-      value: 62888
+      value: 8089
       valueType: int64
     - key: ocp.agent.monitor.http.port
-      value: 62889
+      value: 8088
       valueType: int64

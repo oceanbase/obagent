@@ -185,13 +185,13 @@ func setMonitorAgentConfigPropertyMeta() {
 	config.SetConfigPropertyMeta(
 		&config.ConfigProperty{
 			Key:          "monagent.collector.prometheus.interval",
-			DefaultValue: "1s",
+			DefaultValue: "15s",
 			ValueType:    config.ValueString,
 		})
 	config.SetConfigPropertyMeta(
 		&config.ConfigProperty{
 			Key:          "monagent.collector.ob.basic.interval",
-			DefaultValue: "1s",
+			DefaultValue: "15s",
 			ValueType:    config.ValueString,
 		})
 	config.SetConfigPropertyMeta(
