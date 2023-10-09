@@ -30,8 +30,8 @@ jobs:
 
     - name: Build rpm (x86_64)
       run: |
-        echo "Create rpm dirs, dir: "`pwd`
-        TOP_DIR=rpmbuild
+        TOP_DIR=`pwd`/rpmbuild
+        echo "Create rpm dirs, pwd: $(pwd), TOP_DIR=${TOP_DIR}"
         rm --force --recursive --verbose ${TOP_DIR}
         mkdir -p ${TOP_DIR}/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
         echo "Start build rpm"
@@ -40,6 +40,7 @@ jobs:
         rpm_release_number=$(date +%Y%m%d)
         if [[ -n "${{ inputs.rpm_release }}" ]]; then rpm_release_number="${{ inputs.rpm_release }}"; fi
         export RELEASE=${rpm_release_number}
+        echo "Build obagent rpm, VERSION=${VERSION}, RELEASE=${RELEASE}"
         rpmbuild --define "_topdir ${TOP_DIR}" -bb rpm/$PROJECT_NAME.spec
     - name: Upload rpm (x86_64)
       uses: actions/upload-artifact@v3
