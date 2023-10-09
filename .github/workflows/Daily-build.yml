@@ -37,5 +37,8 @@ jobs:
         echo "RPM version=${VERSION}"
         RELEASE=$(date +%Y%m%d)
         if [[ -n "${{ inputs.rpm_release }}" ]]; then RELEASE="${{ inputs.rpm_release }}"; fi
-        sh rpm/obagent-build.sh
-
+        sh rpm/obagent-build.sh $PROJECT_DIR $PROJECT_NAME $VERSION $RELEASE
+    - name: Upload rpm (x86_64)
+      uses: actions/upload-artifact@v3
+      with:
+        path: obagent-*.rpm
