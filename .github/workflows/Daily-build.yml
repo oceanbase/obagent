@@ -27,10 +27,9 @@ jobs:
       uses: actions/setup-go@v4
       with:
         go-version: '1.17.1'
-
     - name: Build rpm (x86_64)
       run: |
-        TOP_DIR=`pwd`/rpmbuild
+        TOP_DIR=~/rpmbuild
         echo "Create rpm dirs, pwd: $(pwd), TOP_DIR=${TOP_DIR}"
         rm --force --recursive --verbose ${TOP_DIR}
         mkdir -p ${TOP_DIR}/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
