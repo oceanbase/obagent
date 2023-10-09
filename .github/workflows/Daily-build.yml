@@ -1,0 +1,41 @@
+name: Daily build
+run-name: Daily build triggered by ${{ github.actor }} 🎉
+
+on:
+  workflow_dispatch:
+    inputs:
+      rpm_version:
+        description: "RPM version"
+        required: true
+        type: string
+      rpm_release:
+        description: "Rpm release number"
+        required: false
+        default: ''
+        type: string
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout workspace
+      uses: actions/checkout@v3
+      with:
+        submodules: "recursive"
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.17.1'
+
+    - name: Build rpm (x86_64)
+      run: |
+        echo "Start build jar"
+        export PROJECT_DIR=`pwd`
+        export PROJECT_NAME='obagent'
+        export VERSION="${{ inputs.rpm_version }}"
+        echo "RPM version=${VERSION}"
+        RELEASE=$(date +%Y%m%d)
+        if [[ -n "${{ inputs.rpm_release }}" ]]; then RELEASE="${{ inputs.rpm_release }}"; fi
+        sh rpm/obagent-build.sh
+
