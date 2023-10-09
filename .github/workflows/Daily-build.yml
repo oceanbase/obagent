@@ -29,19 +29,6 @@ jobs:
         go-version: '1.17.1'
     - name: Build rpm (x86_64)
       run: |
-        # TOP_DIR=~/rpmbuild
-        # echo "Create rpm dirs, pwd: $(pwd), TOP_DIR=${TOP_DIR}"
-        # rm --force --recursive --verbose ${TOP_DIR}
-        # mkdir -p ${TOP_DIR}/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-        # echo "Start build rpm"
-        # export PROJECT_NAME='obagent'
-        # export VERSION=${{ inputs.rpm_version }}
-        # rpm_release_number=$(date +%Y%m%d)
-        # if [[ -n "${{ inputs.rpm_release }}" ]]; then rpm_release_number="${{ inputs.rpm_release }}"; fi
-        # export RELEASE=${rpm_release_number}
-        # echo "Build obagent rpm, VERSION=${VERSION}, RELEASE=${RELEASE}"
-        # rpmbuild --define "_topdir ${TOP_DIR}" -bb rpm/$PROJECT_NAME.spec
-
         project_dir=$(pwd)
         echo "Project dir is: ${project_dir}"
         cd rpm
