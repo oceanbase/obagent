@@ -23,7 +23,8 @@ echo "[BUILD] args: CURDIR=${CUR_DIR} PROJECT_NAME=${PROJECT_NAME} VERSION=${VER
 
 # prepare rpm build dirs
 rm -rf $TOP_DIR
-mkdir -p $TOP_DIR/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+mkdir -p $TOP_DIR/BUILD $TOP_DIR/RPMS $TOP_DIR/SOURCES $TOP_DIR/SPECS $TOP_DIR/SRPMS
+echo "dir is: $(ls -l ${TOP_DIR})"
 
 # build rpm
 cd $CUR_DIR
@@ -32,3 +33,4 @@ export VERSION=${VERSION}
 export RELEASE=${RELEASE}
 rpmbuild --define "_topdir $TOP_DIR" -bb $PROJECT_NAME.spec
 find $TOP_DIR/ -name "*.rpm" -exec mv {} . 2>/dev/null \;
+echo "RPM path: $(find . -name '*.rpm')"

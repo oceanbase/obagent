@@ -51,4 +51,5 @@ jobs:
     - name: Upload rpm (x86_64)
       uses: actions/upload-artifact@v3
       with:
-        path: rpmbuild/obagent-*.rpm
+        name: ocp-agent-rpm
+        path: rpm/obagent-*.rpm
