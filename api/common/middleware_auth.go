@@ -15,7 +15,7 @@ package common
 import (
 	"context"
 	"crypto/hmac"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
 	"net/http"
 	"strings"
@@ -31,7 +31,7 @@ import (
 
 const (
 	Basic           string = "Basic"
-	HmacSHA1        string = "OCP-HMACSHA1"
+	HmacSHA256      string = "OCP-HMACSHA256"
 	TRACE_ID_HEADER string = "X-OCP-Trace-ID"
 	TimeFormat      string = "2006/01/02 15:04:05"
 )
@@ -79,8 +79,8 @@ func (auth *BasicAuth) Authorize(req *http.Request) error {
 	}
 
 	authType := authHeaders[0]
-	if authType != Basic && authType != HmacSHA1 {
-		log.Errorf("invalid header authorization: %s, first content should be Basic or OCP-HMACSHA1, got %s.", authHeader, authHeaders[0])
+	if authType != Basic && authType != HmacSHA256 {
+		log.Errorf("invalid header authorization: %s, first content should be Basic or OCP-HMACSHA256, got %s.", authHeader, authHeaders[0])
 		return errors.Errorf("invalid header authorization")
 	}
 
@@ -104,7 +104,7 @@ func (auth *BasicAuth) Authorize(req *http.Request) error {
 		} else {
 			return errors.Errorf("wrong password")
 		}
-	case HmacSHA1:
+	case HmacSHA256:
 		if !checkReqTime(req) {
 			log.Errorf("check request Date failed")
 			return errors.Occur(errors.ErrBadRequest)
@@ -170,7 +170,7 @@ func computeSign(req *http.Request, password string) string {
 	date := req.Header.Get("Date")
 	traceId := req.Header.Get(TRACE_ID_HEADER)
 	string2Sign := method + "\n" + url + "\n" + contentType + "\n" + date + "\n" + traceId
-	mac := hmac.New(sha1.New, []byte(password))
+	mac := hmac.New(sha256.New, []byte(password))
 	mac.Write([]byte(string2Sign))
 	signature := base64.StdEncoding.EncodeToString(mac.Sum(nil))
 	return signature
