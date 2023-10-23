@@ -630,12 +630,12 @@ obInputExtra: &obInputExtra
           enableCache: true
           cacheExpire: 60s
 
-        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ __all_tenant.tenant_name as tenant_name, cast(v_acc_response_time.response_time / 1000000 as float) as response_time_seconds,  v_acc_response_time.count as bucket, case when  v_acc_response_time.response_time = (select max(response_time) from __all_virtual_query_response_time) then v_acc_response_time.count else null end as count, case when  v_acc_response_time.response_time = (select max(response_time) from __all_virtual_query_response_time) then cast(v_acc_response_time.sum / 1000000 as float) else null end as sum from (select b.tenant_id, b.response_time  as response_time, sum(a.count) as count, sum(a.total) as sum from  __all_virtual_query_response_time a,  __all_virtual_query_response_time b where a.response_time <= b.response_time and a.svr_ip = b.svr_ip and a.svr_port = b.svr_port and b.svr_ip = ? and b.svr_port = ? group by b.tenant_id, b.response_time) v_acc_response_time,  __all_tenant where v_acc_response_time.tenant_id = __all_tenant.tenant_id;
+        - sql: select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ __all_tenant.tenant_name as tenant_name, v_acc_response_time.response_time as response_time_seconds,  v_acc_response_time.count as bucket, case when  v_acc_response_time.response_time = '+inf' then v_acc_response_time.count else null end as count, case when  v_acc_response_time.response_time = '+inf' then cast(v_acc_response_time.sum / 1000000 as float) else null end as sum from (select b.tenant_id, b.response_time / 1000000  as response_time, sum(a.count) as count, sum(a.total) as sum from  __all_virtual_query_response_time a,  __all_virtual_query_response_time b where a.response_time <= b.response_time and a.svr_ip = b.svr_ip and a.svr_port = b.svr_port and b.svr_ip = ? and b.svr_port = ? group by b.tenant_id, b.response_time union  select tenant_id, '+inf', sum(count), sum(total) from __all_virtual_query_response_time) v_acc_response_time,  __all_tenant where v_acc_response_time.tenant_id = __all_tenant.tenant_id;
           params: [ob_svr_ip, ob_svr_port]
           name: ob_query_response_time_seconds
           sqlSlowThreshold: 100ms
           minObVersion: ~
-          maxObVersion: 4.0.0.0
+          maxObVersion: ~
           tags:
             tenant_name: tenant_name
             le: response_time_seconds
