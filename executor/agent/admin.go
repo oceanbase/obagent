@@ -734,7 +734,7 @@ func (a *Admin) downloadPkg(opCtx *OpCtx, param DownloadParam) (err error) {
 		log.Errorf("download package from source '%s', failed: %v", param.Source, err)
 		return
 	}
-	realChecksum, err := file.FileImpl{}.Sha1Checksum(tmpPath)
+	realChecksum, err := file.FileImpl{}.Sha256Checksum(tmpPath)
 	if err != nil {
 		log.Errorf("calculate checksum of temp package file '%s' failed: %v", tmpPath, err)
 		return
