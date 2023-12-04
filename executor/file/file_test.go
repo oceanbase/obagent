@@ -79,7 +79,7 @@ func TestDownloadFileFromUrl(t *testing.T) {
 			mockFile.EXPECT().FileExists(gomock.Any()).Return(false, nil)
 			mockFile.EXPECT().CreateDirectoryForUser(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			mockHttp.EXPECT().DownloadFile(fullPath, tt.args.url).Return(nil)
-			mockFile.EXPECT().Sha1Checksum(fullPath).Return(tt.args.actualChecksum, nil)
+			mockFile.EXPECT().Sha256Checksum(fullPath).Return(tt.args.actualChecksum, nil)
 
 			_, err := DownloadFile(context.Background(), DownloadFileParam{
 				Source: DownloadFileSource{
