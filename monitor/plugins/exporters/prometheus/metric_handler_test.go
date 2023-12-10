@@ -13,8 +13,9 @@
 package prometheus
 
 import (
+	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -50,7 +51,8 @@ func TestPipelineGroupReader(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	data, err := ioutil.ReadAll(res.Body)
+	data := bytes.Buffer{}
+	_, err = io.Copy(&data, res.Body)
 	res.Body.Close()
 	assert.Nil(t, err)
 	assert.Equal(t, `# HELP test1_count monitor collected message
@@ -62,5 +64,5 @@ test2_count{t="2"} 2.2
 # HELP test3_count monitor collected message
 # TYPE test3_count counter
 test3_count{t="1"} 1.1
-`, string(data))
+`, data.String())
 }
