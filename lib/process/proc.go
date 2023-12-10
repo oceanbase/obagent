@@ -13,8 +13,8 @@
 package process
 
 import (
+	"bytes"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/user"
@@ -99,18 +99,20 @@ func (p *Proc) Start(params map[string]string) (err error) {
 	if stdout != nil {
 		stdoutChan = make(chan []byte, 1)
 		go func() {
-			b, _ := ioutil.ReadAll(stdout)
+			var b bytes.Buffer
+			io.Copy(&b, stdout)
 			_ = stdout.Close()
-			stdoutChan <- b
+			stdoutChan <- b.Bytes()
 			close(stdoutChan)
 		}()
 	}
 	if stderr != nil {
 		stderrChan = make(chan []byte, 1)
 		go func() {
-			b, _ := ioutil.ReadAll(stderr)
+			var b bytes.Buffer
+			io.Copy(&b, stdout)
 			_ = stderr.Close()
-			stderrChan <- b
+			stderrChan <- b.Bytes()
 			close(stderrChan)
 		}()
 	}

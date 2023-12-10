@@ -128,7 +128,7 @@ func (f FileImpl) Sha256Checksum(path string) (string, error) {
 		return "", errors.Errorf("failed to compute sha1 for %s, cannot open file: %s", path, err)
 	}
 	defer file.Close()
-	
+
 	hasher := sha256.New()
 	_, err = io.Copy(hasher, file)
 	if err != nil {

@@ -14,10 +14,10 @@ package log_tailer
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -157,18 +157,19 @@ func loadLastPosition(ctx context.Context, recoveryConf monagent.RecoveryConfig,
 
 func loadPositionFromReader(f io.Reader) (*RecoveryInfo, error) {
 	reader := bufio.NewReader(f)
-	body, err := ioutil.ReadAll(reader)
+	var b bytes.Buffer
+	_, err := io.Copy(&b, reader)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(body) == 0 {
+	if len(b.Bytes()) == 0 {
 		return nil, nil
 	}
 
 	recoveryInfo := &RecoveryInfo{}
 
-	err = json.Unmarshal(body, recoveryInfo)
+	err = json.Unmarshal(b.Bytes(), recoveryInfo)
 	if err != nil {
 		return nil, err
 	}

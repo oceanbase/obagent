@@ -16,7 +16,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"strings"
@@ -76,13 +76,14 @@ func (ac *ApiClient) Call(api string, param interface{}, retPtr interface{}) err
 	envelop := OcpAgentResponse{
 		Data: retPtr,
 	}
-	bs, err := ioutil.ReadAll(resp.Body)
+	var b bytes.Buffer
+	_, err = io.Copy(&b, resp.Body)
 	if err != nil {
 		return ApiRequestFailedErr.NewError(api).WithCause(err)
 	}
-	cpResp := make([]byte, len(bs))
-	copy(cpResp, bs)
-	respReader := bytes.NewReader(bs)
+	cpResp := make([]byte, len(b.Bytes()))
+	copy(cpResp, b.Bytes())
+	respReader := bytes.NewReader(b.Bytes())
 
 	if resp.StatusCode != http.StatusOK {
 		err = json.NewDecoder(respReader).Decode(&envelop)
