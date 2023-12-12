@@ -16,7 +16,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -114,19 +114,20 @@ func TestNewFuncHandler(t *testing.T) {
 		t.Error(err)
 	}
 	handler.ServeHTTP(resp, req)
-	body, err := ioutil.ReadAll(resp.Body)
+	var b bytes.Buffer
+	_, err = io.Copy(&b, resp.Body)
 	if err != nil {
 		t.Error(err)
 	}
 	envelop := OcpAgentResponse{
 		Data: 0,
 	}
-	err = json.Unmarshal(body, &envelop)
+	err = json.Unmarshal(b.Bytes(), &envelop)
 	if err != nil {
 		t.Error(err)
 	}
 	if envelop.Data != 14 {
 		t.Error("bad value")
 	}
-	fmt.Println(string(body))
+	fmt.Println(b.String())
 }
