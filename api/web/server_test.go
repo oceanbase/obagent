@@ -13,8 +13,9 @@
 package web
 
 import (
+	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -37,10 +38,11 @@ func Test_NewServer(t *testing.T) {
 		handler(w, req)
 
 		resp := w.Result()
-		body, _ := ioutil.ReadAll(resp.Body)
+		var b bytes.Buffer
+		io.Copy(&b, resp.Body)
 
 		var successResponse http2.OcpAgentResponse
-		_ = json.Unmarshal(body, &successResponse)
+		_ = json.Unmarshal(b.Bytes(), &successResponse)
 
 		So(resp.StatusCode, ShouldEqual, http.StatusOK)
 		So(successResponse.Status, ShouldEqual, http.StatusOK)

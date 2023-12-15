@@ -207,8 +207,9 @@ func (s *HttpSender) send(ctx context.Context, reader io.Reader) error {
 	}).Observe(float64(time.Now().Sub(startTime)) / float64(time.Millisecond))
 
 	if !s.acceptedResponseCodes[resp.StatusCode] {
-		body, _ := io.ReadAll(resp.Body)
-		return errors.Errorf("%s error code: %d, body: %s", s.address(), resp.StatusCode, body)
+		var b bytes.Buffer
+		io.Copy(&b, resp.Body)
+		return errors.Errorf("%s error code: %d, body: %s", s.address(), resp.StatusCode, b.Bytes())
 	}
 	return nil
 }

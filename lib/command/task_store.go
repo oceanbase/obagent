@@ -14,10 +14,10 @@ package command
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -198,14 +198,15 @@ func (fts *FileTaskStore) loadFromReader(f io.Reader) (StoredStatus, error) {
 	}
 
 	if header.ResponseType != TypeStructured {
-		body, err := ioutil.ReadAll(reader)
+		var b bytes.Buffer
+		_, err = io.Copy(&b, reader)
 		if err != nil {
 			return StoredStatus{}, err
 		}
 		if header.ResponseType == TypeBinary {
-			header.Result = body
+			header.Result = b.Bytes()
 		} else if header.ResponseType == TypeText {
-			header.Result = string(body)
+			header.Result = b.String()
 		}
 	}
 	return header, nil

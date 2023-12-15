@@ -14,7 +14,7 @@ package file
 
 import (
 	"context"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -52,7 +52,7 @@ type File interface {
 
 	FileExistsEqualsSha1sum(path string, sha1sum string) (bool, error)
 
-	Sha1Checksum(path string) (string, error)
+	Sha256Checksum(path string) (string, error)
 
 	ReadFile(path string) (string, error)
 
@@ -122,17 +122,17 @@ func fileExists(path string) (bool, error) {
 	}
 }
 
-func (f FileImpl) Sha1Checksum(path string) (string, error) {
+func (f FileImpl) Sha256Checksum(path string) (string, error) {
 	file, err := Fs.Open(path)
 	if err != nil {
 		return "", errors.Errorf("failed to compute sha1 for %s, cannot open file: %s", path, err)
 	}
 	defer file.Close()
 
-	hasher := sha1.New()
+	hasher := sha256.New()
 	_, err = io.Copy(hasher, file)
 	if err != nil {
-		return "", errors.Errorf("failed to compute sha1 for %s, cannot read file: %s", path, err)
+		return "", errors.Errorf("failed to compute sha256 for %s, cannot read file: %s", path, err)
 	}
 
 	value := hex.EncodeToString(hasher.Sum(nil))
@@ -193,7 +193,7 @@ func (f FileImpl) FileExistsEqualsSha1sum(path string, expectSha1sum string) (bo
 	if !exists {
 		return false, nil
 	}
-	sha1sum, err := f.Sha1Checksum(path)
+	sha1sum, err := f.Sha256Checksum(path)
 	if err != nil {
 		return false, errors.Wrap(err, "check file exists with sha1")
 	}

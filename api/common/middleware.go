@@ -15,7 +15,7 @@ package common
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"regexp"
 	"strings"
 	"time"
@@ -79,9 +79,14 @@ func PreHandlers(maskBodyRoutes ...string) func(*gin.Context) {
 var emptyRe = regexp.MustCompile(`\s+`)
 
 func readRequestBody(c *gin.Context) string {
-	body, _ := ioutil.ReadAll(c.Request.Body)
-	c.Request.Body = ioutil.NopCloser(bytes.NewReader(body))
-	return emptyRe.ReplaceAllString(string(body), "")
+	var b bytes.Buffer
+	_, err := io.Copy(&b, c.Request.Body)
+	if err != nil {
+		log.Errorf("read request body failed")
+		return ""
+	}
+	c.Request.Body = io.NopCloser(bytes.NewReader(b.Bytes()))
+	return emptyRe.ReplaceAllString(b.String(), "")
 }
 
 // If c.BindJSON fails (e.g. validation error), content-type will be set to text/plain.

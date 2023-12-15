@@ -99,7 +99,7 @@ func DownloadFile(ctx context.Context, param DownloadFileParam) (*BasicFileInfo,
 		Path: param.Target,
 	}
 	if exists, err := libFile.FileExists(targetPath.FullPath()); err == nil && exists {
-		if sha1sum, err := libFile.Sha1Checksum(targetPath.FullPath()); err == nil && sha1sum == param.Checksum {
+		if sha1sum, err := libFile.Sha256Checksum(targetPath.FullPath()); err == nil && sha1sum == param.Checksum {
 			ctxLog.Info("download file skipped, file with same checksum already exists")
 			return fileInfo, nil
 		}
@@ -126,7 +126,7 @@ func DownloadFile(ctx context.Context, param DownloadFileParam) (*BasicFileInfo,
 	}
 
 	if param.ValidateChecksum {
-		checksum, err := libFile.Sha1Checksum(targetPath.FullPath())
+		checksum, err := libFile.Sha256Checksum(targetPath.FullPath())
 		if err != nil {
 			return nil, errors.Occur(errors.ErrUnexpected, err)
 		}
