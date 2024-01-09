@@ -55,11 +55,14 @@ sed -e 's|${obagent.home.path}|%{_prefix}/obagent|' \
     $RPM_BUILD_ROOT/%{_prefix}/obagent/conf/scripts/obagent.service \
     > $RPM_BUILD_ROOT/obagent.service.tmp
 install -p -D -m 0644 $RPM_BUILD_ROOT/obagent.service.tmp \
-    %{buildroot}%{_sysconfdir}/systemd/system/multi-user.target.wants/obagent.service
+    %{buildroot}/usr/lib/systemd/system/obagent.service
 rm $RPM_BUILD_ROOT/obagent.service.tmp
+mkdir -p %{buildroot}%{_sysconfdir}/systemd/system/multi-user.target.wants
+ln -sf /usr/lib/systemd/system/obagent.service %{buildroot}%{_sysconfdir}/systemd/system/multi-user.target.wants/obagent.service
 
 %files
 %{_sysconfdir}/systemd/system/multi-user.target.wants/obagent.service
+/usr/lib/systemd/system/obagent.service
 %defattr(755,admin,admin)
 %dir %{_prefix}/obagent/
 %dir %{_prefix}/obagent/bin
