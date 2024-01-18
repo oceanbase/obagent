@@ -1,5 +1,6 @@
 [Unit]
 Description=start obagent
+After=network.target syslog.target rc-local.target
 [Service]
 Type=forking
 ExecStart=${obagent.home.path}/bin/ob_agentctl start

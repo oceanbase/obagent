@@ -42,6 +42,6 @@ case X$1 in
     *)
 	echo "Usage: change_version.sh set-obagent-version|show-version"
 	echo "Examples:"
-	echo "       change_version.sh set-obagent-version 4.2.1"
+	echo "       change_version.sh set-obagent-version 4.2.2"
 	echo "       change_version.sh show-version"
 esac
