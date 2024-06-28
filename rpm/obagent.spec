@@ -11,7 +11,7 @@ Version:4.2.2
 Release: %(echo $RELEASE)%{?dist}
 URL: https://github.com/oceanbase/obagent
 License: MulanPSL - 2.0
-BuildArch: x86_64 aarch64
+BuildArch: x86_64 aarch64 ppc64le
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Prefix: /home/admin
 
