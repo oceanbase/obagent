@@ -7,7 +7,7 @@
 Name: obagent
 Summary: obagent program
 Group: alipay/oceanbase
-Version:4.2.2
+Version:4.2.3
 Release: %(echo $RELEASE)%{?dist}
 URL: https://github.com/oceanbase/obagent
 License: MulanPSL - 2.0

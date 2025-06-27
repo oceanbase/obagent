@@ -1,6 +1,6 @@
 PROJECT=obagent
 PROCESSOR=2
-VERSION=4.2.2-20240108
+VERSION=4.2.3-20250627
 PWD ?= $(shell pwd)
 
 GO              := GO111MODULE=on GOPROXY=https://goproxy.cn,direct go
