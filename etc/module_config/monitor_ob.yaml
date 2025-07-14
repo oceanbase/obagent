@@ -447,7 +447,6 @@ obInputBasic: &obInputBasic
             cumulative_count: cumulative_count
           enableCache: true
           cacheExpire: ${monagent.second.metric.cache.update.interval}
-          disabled: ${monagent.pipeline.p99.collect.disabled}
         - sql: select tenant_id, svr_ip, response_time, cumulative_count from (select t1.tenant_id, t1.svr_ip, (case when t1.response_time >= t0.max_rt then '+Inf' else t1.response_time * 1000000 end) as response_time, t1.total_count, t1.total_value * 1000000 as total_value, sum(t2.total_count) as cumulative_count, sum(t2.total_value) * 1000000 as cumulative_value from (select max(response_time) as max_rt from v$ob_query_response_time_histogram) t0 join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t1 inner join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t2 on t1.response_time >= t2.response_time and t1.tenant_id = t2.tenant_id and t1.svr_ip = t2.svr_ip and t1.sql_type = t2.sql_type where t1.svr_ip = ? and t1.sql_type in ('SELECT', 'INSERT', 'DELETE', 'UPDATE', 'REPLACE', 'COMMIT', 'OTHER') group by t1.response_time, t1.tenant_id)
           params: [ob_svr_ip]
           name: ob_query_rt_total
@@ -461,7 +460,6 @@ obInputBasic: &obInputBasic
             cumulative_count: cumulative_count
           enableCache: true
           cacheExpire: ${monagent.second.metric.cache.update.interval}
-          disabled: ${monagent.pipeline.p99.collect.disabled}
         - sql: select tenant_id, svr_ip, response_time, cumulative_count from (select t1.tenant_id, t1.svr_ip, (case when t1.response_time >= t0.max_rt then '+Inf' else t1.response_time * 1000000 end) as response_time, t1.total_count, t1.total_value * 1000000 as total_value, sum(t2.total_count) as cumulative_count, sum(t2.total_value) * 1000000 as cumulative_value from (select max(response_time) as max_rt from v$ob_query_response_time_histogram) t0 join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t1 inner join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t2 on t1.response_time >= t2.response_time and t1.tenant_id = t2.tenant_id and t1.svr_ip = t2.svr_ip and t1.sql_type = t2.sql_type where t1.svr_ip = ? and t1.sql_type in ('SELECT', 'INSERT', 'DELETE', 'UPDATE', 'REPLACE', 'COMMIT', 'OTHER') group by t1.response_time, t1.tenant_id)
           params: [ob_svr_ip]
           name: ob_query_rt_total
@@ -475,7 +473,6 @@ obInputBasic: &obInputBasic
             cumulative_count: cumulative_count
           enableCache: true
           cacheExpire: ${monagent.second.metric.cache.update.interval}
-          disabled: ${monagent.pipeline.p99.collect.disabled}
 
         - sql: select tenant_id, svr_ip, response_time, cumulative_count from (select t1.tenant_id, t1.svr_ip, (case when t1.response_time >= t0.max_rt then '+Inf' else t1.response_time * 1000000 end) as response_time, t1.total_count, t1.total_value * 1000000 as total_value, sum(t2.total_count) as cumulative_count, sum(t2.total_value) * 1000000 as cumulative_value from (select max(response_time) as max_rt from v$ob_query_response_time_histogram) t0 join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t1 inner join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t2 on t1.response_time >= t2.response_time and t1.tenant_id = t2.tenant_id and t1.svr_ip = t2.svr_ip and t1.sql_type = t2.sql_type where t1.svr_ip = ? and t1.sql_type in ('TABLEAPI SELECT', 'TABLEAPI INSERT', 'TABLEAPI DELETE', 'TABLEAPI UPDATE', 'TABLEAPI REPLACE', 'TABLEAPI QUERY AND MUTATE', 'TABLEAPI OTHER') group by t1.response_time, t1.tenant_id)
           params: [ob_svr_ip]
@@ -490,7 +487,6 @@ obInputBasic: &obInputBasic
             cumulative_count: cumulative_count
           enableCache: true
           cacheExpire: ${monagent.second.metric.cache.update.interval}
-          disabled: ${monagent.pipeline.p99.collect.disabled}
         - sql: select tenant_id, svr_ip, response_time, cumulative_count from (select t1.tenant_id, t1.svr_ip, (case when t1.response_time >= t0.max_rt then '+Inf' else t1.response_time * 1000000 end) as response_time, t1.total_count, t1.total_value * 1000000 as total_value, sum(t2.total_count) as cumulative_count, sum(t2.total_value) * 1000000 as cumulative_value from (select max(response_time) as max_rt from v$ob_query_response_time_histogram) t0 join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t1 inner join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t2 on t1.response_time >= t2.response_time and t1.tenant_id = t2.tenant_id and t1.svr_ip = t2.svr_ip and t1.sql_type = t2.sql_type where t1.svr_ip = ? and t1.sql_type in ('TABLEAPI SELECT', 'TABLEAPI INSERT', 'TABLEAPI DELETE', 'TABLEAPI UPDATE', 'TABLEAPI REPLACE', 'TABLEAPI QUERY AND MUTATE', 'TABLEAPI OTHER') group by t1.response_time, t1.tenant_id)
           params: [ob_svr_ip]
           name: ob_query_rt_table_total
@@ -504,7 +500,6 @@ obInputBasic: &obInputBasic
             cumulative_count: cumulative_count
           enableCache: true
           cacheExpire: ${monagent.second.metric.cache.update.interval}
-          disabled: ${monagent.pipeline.p99.collect.disabled}
         - sql: select tenant_id, svr_ip, response_time, cumulative_count from (select t1.tenant_id, t1.svr_ip, (case when t1.response_time >= t0.max_rt then '+Inf' else t1.response_time * 1000000 end) as response_time, t1.total_count, t1.total_value * 1000000 as total_value, sum(t2.total_count) as cumulative_count, sum(t2.total_value) * 1000000 as cumulative_value from (select max(response_time) as max_rt from v$ob_query_response_time_histogram) t0 join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t1 inner join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t2 on t1.response_time >= t2.response_time and t1.tenant_id = t2.tenant_id and t1.svr_ip = t2.svr_ip and t1.sql_type = t2.sql_type where t1.svr_ip = ? and t1.sql_type in ('TABLEAPI SELECT', 'TABLEAPI INSERT', 'TABLEAPI DELETE', 'TABLEAPI UPDATE', 'TABLEAPI REPLACE', 'TABLEAPI QUERY AND MUTATE', 'TABLEAPI OTHER') group by t1.response_time, t1.tenant_id)
           params: [ob_svr_ip]
           name: ob_query_rt_table_total
@@ -518,7 +513,6 @@ obInputBasic: &obInputBasic
             cumulative_count: cumulative_count
           enableCache: true
           cacheExpire: ${monagent.second.metric.cache.update.interval}
-          disabled: ${monagent.pipeline.p99.collect.disabled}
 
         - sql: select tenant_id, svr_ip, response_time, cumulative_count from (select t1.tenant_id, t1.svr_ip, (case when t1.response_time >= t0.max_rt then '+Inf' else t1.response_time * 1000000 end) as response_time, t1.total_count, t1.total_value * 1000000 as total_value, sum(t2.total_count) as cumulative_count, sum(t2.total_value) * 1000000 as cumulative_value from (select max(response_time) as max_rt from v$ob_query_response_time_histogram) t0 join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t1 inner join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t2 on t1.response_time >= t2.response_time and t1.tenant_id = t2.tenant_id and t1.svr_ip = t2.svr_ip and t1.sql_type = t2.sql_type where t1.svr_ip = ? and t1.sql_type in ('HBASE SCAN', 'HBASE PUT', 'HBASE DELETE', 'HBASE APPEND', 'HBASE INCREMENT', 'HBASE CHECK AND PUT', 'HBASE CHECK AND DELETE', 'HBASE HYBRID BATCH') group by t1.response_time, t1.tenant_id)
           params: [ob_svr_ip]
@@ -533,7 +527,6 @@ obInputBasic: &obInputBasic
             cumulative_count: cumulative_count
           enableCache: true
           cacheExpire: ${monagent.second.metric.cache.update.interval}
-          disabled: ${monagent.pipeline.p99.collect.disabled}
         - sql: select tenant_id, svr_ip, response_time, cumulative_count from (select t1.tenant_id, t1.svr_ip, (case when t1.response_time >= t0.max_rt then '+Inf' else t1.response_time * 1000000 end) as response_time, t1.total_count, t1.total_value * 1000000 as total_value, sum(t2.total_count) as cumulative_count, sum(t2.total_value) * 1000000 as cumulative_value from (select max(response_time) as max_rt from v$ob_query_response_time_histogram) t0 join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t1 inner join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t2 on t1.response_time >= t2.response_time and t1.tenant_id = t2.tenant_id and t1.svr_ip = t2.svr_ip and t1.sql_type = t2.sql_type where t1.svr_ip = ? and t1.sql_type in ('HBASE SCAN', 'HBASE PUT', 'HBASE DELETE', 'HBASE APPEND', 'HBASE INCREMENT', 'HBASE CHECK AND PUT', 'HBASE CHECK AND DELETE', 'HBASE HYBRID BATCH') group by t1.response_time, t1.tenant_id)
           params: [ob_svr_ip]
           name: ob_query_rt_hbase_total
@@ -547,7 +540,6 @@ obInputBasic: &obInputBasic
             cumulative_count: cumulative_count
           enableCache: true
           cacheExpire: ${monagent.second.metric.cache.update.interval}
-          disabled: ${monagent.pipeline.p99.collect.disabled}
         - sql: select tenant_id, svr_ip, response_time, cumulative_count from (select t1.tenant_id, t1.svr_ip, (case when t1.response_time >= t0.max_rt then '+Inf' else t1.response_time * 1000000 end) as response_time, t1.total_count, t1.total_value * 1000000 as total_value, sum(t2.total_count) as cumulative_count, sum(t2.total_value) * 1000000 as cumulative_value from (select max(response_time) as max_rt from v$ob_query_response_time_histogram) t0 join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t1 inner join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t2 on t1.response_time >= t2.response_time and t1.tenant_id = t2.tenant_id and t1.svr_ip = t2.svr_ip and t1.sql_type = t2.sql_type where t1.svr_ip = ? and t1.sql_type in ('HBASE SCAN', 'HBASE PUT', 'HBASE DELETE', 'HBASE APPEND', 'HBASE INCREMENT', 'HBASE CHECK AND PUT', 'HBASE CHECK AND DELETE', 'HBASE HYBRID BATCH') group by t1.response_time, t1.tenant_id)
           params: [ob_svr_ip]
           name: ob_query_rt_hbase_total
@@ -561,7 +553,6 @@ obInputBasic: &obInputBasic
             cumulative_count: cumulative_count
           enableCache: true
           cacheExpire: ${monagent.second.metric.cache.update.interval}
-          disabled: ${monagent.pipeline.p99.collect.disabled}
 
         - sql: select tenant_id, svr_ip, response_time, cumulative_count from (select t1.tenant_id, t1.svr_ip, (case when t1.response_time >= t0.max_rt then '+Inf' else t1.response_time * 1000000 end) as response_time, t1.total_count, t1.total_value * 1000000 as total_value, sum(t2.total_count) as cumulative_count, sum(t2.total_value) * 1000000 as cumulative_value from (select max(response_time) as max_rt from v$ob_query_response_time_histogram) t0 join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t1 inner join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t2 on t1.response_time >= t2.response_time and t1.tenant_id = t2.tenant_id and t1.svr_ip = t2.svr_ip and t1.sql_type = t2.sql_type where t1.svr_ip = ? and t1.sql_type in ('REDIS SET', 'REDIS GET', 'REDIS HSET', 'REDIS HGET', 'REDIS LPUSH', 'REDIS LPOP', 'REDIS SADD', 'REDIS ZADD') group by t1.response_time, t1.tenant_id)
           params: [ob_svr_ip]
@@ -576,7 +567,6 @@ obInputBasic: &obInputBasic
             cumulative_count: cumulative_count
           enableCache: true
           cacheExpire: ${monagent.second.metric.cache.update.interval}
-          disabled: ${monagent.pipeline.p99.collect.disabled}
         - sql: select tenant_id, svr_ip, response_time, cumulative_count from (select t1.tenant_id, t1.svr_ip, (case when t1.response_time >= t0.max_rt then '+Inf' else t1.response_time * 1000000 end) as response_time, t1.total_count, t1.total_value * 1000000 as total_value, sum(t2.total_count) as cumulative_count, sum(t2.total_value) * 1000000 as cumulative_value from (select max(response_time) as max_rt from v$ob_query_response_time_histogram) t0 join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t1 inner join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t2 on t1.response_time >= t2.response_time and t1.tenant_id = t2.tenant_id and t1.svr_ip = t2.svr_ip and t1.sql_type = t2.sql_type where t1.svr_ip = ? and t1.sql_type in ('REDIS SET', 'REDIS GET', 'REDIS HSET', 'REDIS HGET', 'REDIS LPUSH', 'REDIS LPOP', 'REDIS SADD', 'REDIS ZADD') group by t1.response_time, t1.tenant_id)
           params: [ob_svr_ip]
           name: ob_query_rt_redis_total
@@ -590,7 +580,6 @@ obInputBasic: &obInputBasic
             cumulative_count: cumulative_count
           enableCache: true
           cacheExpire: ${monagent.second.metric.cache.update.interval}
-          disabled: ${monagent.pipeline.p99.collect.disabled}
         - sql: select tenant_id, svr_ip, response_time, cumulative_count from (select t1.tenant_id, t1.svr_ip, (case when t1.response_time >= t0.max_rt then '+Inf' else t1.response_time * 1000000 end) as response_time, t1.total_count, t1.total_value * 1000000 as total_value, sum(t2.total_count) as cumulative_count, sum(t2.total_value) * 1000000 as cumulative_value from (select max(response_time) as max_rt from v$ob_query_response_time_histogram) t0 join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t1 inner join (select tenant_id, svr_ip, sql_type, response_time, sum(count) as total_count, sum(total) as total_value from v$ob_query_response_time_histogram group by response_time, tenant_id, svr_ip, sql_type) t2 on t1.response_time >= t2.response_time and t1.tenant_id = t2.tenant_id and t1.svr_ip = t2.svr_ip and t1.sql_type = t2.sql_type where t1.svr_ip = ? and t1.sql_type in ('REDIS SET', 'REDIS GET', 'REDIS HSET', 'REDIS HGET', 'REDIS LPUSH', 'REDIS LPOP', 'REDIS SADD', 'REDIS ZADD') group by t1.response_time, t1.tenant_id)
           params: [ob_svr_ip]
           name: ob_query_rt_redis_total
@@ -604,7 +593,6 @@ obInputBasic: &obInputBasic
             cumulative_count: cumulative_count
           enableCache: true
           cacheExpire: ${monagent.second.metric.cache.update.interval}
-          disabled: ${monagent.pipeline.p99.collect.disabled}
 
 obInputExtra: &obInputExtra
   plugin: mysqlTableInput
